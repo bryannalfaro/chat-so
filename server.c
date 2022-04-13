@@ -39,7 +39,10 @@ int main(int argc, char **argv){
             perror("ERROR on accept");
             exit(1);
             }
-        send(newsockfd, "Hello, world!\n", 14, 0);
+	char d[300];
+	sprintf(d, "Your ip: %s", inet_ntoa(cli_addr.sin_addr)); 
+        send(newsockfd, "Hello, world from server!\n", 26, 0);
+	send(newsockfd,(const void *)d,25,0);
         close(newsockfd);
     }
     close(sockfd);
