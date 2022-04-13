@@ -17,6 +17,7 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "ERROR, no port provided\n");
         exit(1);
     }
+
     ip = argv[1];
     portno = atoi(argv[2]);
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -24,14 +25,13 @@ int main(int argc, char *argv[]){
         perror("ERROR opening socket");
         exit(1);
     }
-    server = gethostbyname(ip);
-    if(server == NULL){
-        fprintf(stderr, "ERROR, no such host\n");
-        exit(1);
-    }
+
+    
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(portno);
+    serv_addr.sin_addr.s_addr = inet_addr(ip);
+
     if(connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
         perror("ERROR connecting");
         exit(1);

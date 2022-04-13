@@ -22,12 +22,14 @@ int main(int argc, char **argv){
     bzero((char *) &serv_addr, sizeof(serv_addr));
     portno = atoi(argv[1]);
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_addr.s_addr = inet_addr("192.168.0.21");
     serv_addr.sin_port = htons(portno);
+
     if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
         perror("ERROR on binding");
         exit(1);
     }
+
     listen(sockfd, 5);
 
     while(1){
