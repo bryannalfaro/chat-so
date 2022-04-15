@@ -8,7 +8,7 @@
 #include<pthread.h>
 #include<signal.h>
 
-static int uid = 10;
+static int uid = 1;
 static _Atomic unsigned int clients_count = 0;
 //Estructura para el cliente
 typedef struct{
@@ -16,6 +16,7 @@ typedef struct{
 	int sockfd;
 	int uid;
 	char name[40];
+	char ip_user[20];
 } client_t;
 client_t *clients[40]; //Lista de clientes
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -70,6 +71,24 @@ void broadcast_message(char *message, int uid){
 		pthread_mutex_unlock(&clients_mutex);
 	}
 
+void message_user(char *message, int uid, int uid_receiver){
+		pthread_mutex_lock(&clients_mutex);
+		int l=0;
+		for(l; l<40; l++){
+			if(clients[l]!=NULL){
+			if(clients[l]->uid != uid){
+			if(clients[l]->uid == uid_receiver){
+				write(clients[l]->sockfd, message, strlen(message));
+				break;
+			}
+				
+			}
+	}
+			
+	}
+		pthread_mutex_unlock(&clients_mutex);
+	}
+
 void *handle_client(void *arg){
 	char buffer[2000];
 	char name[40];
@@ -77,7 +96,7 @@ void *handle_client(void *arg){
 	clients_count++;
 
 	client_t *client = (client_t*)arg;
-	printf("Bienvenido");
+	printf("Bienvenido %d con ip: %s", client->uid, client->ip_user);
 	//Establecer nombre de usuario
 	if(recv(client->sockfd, name, 40,0)<=0 || strlen(name)<2 || strlen(name) > 39){
 			
@@ -167,6 +186,7 @@ int main(int argc, char **argv){
 	client->address = cli_addr;
 	client->sockfd = newsockfd;
 	client->uid = uid++;
+	sprintf(client->ip_user, "%s",inet_ntoa(cli_addr.sin_addr));
 	
 	add_client(client);
 	pthread_create(&tid, NULL, &handle_client, (void*)client); //Hilo del cliente
