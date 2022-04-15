@@ -1,5 +1,5 @@
 //CLIENT
-//referencia: https://www.youtube.com/watch?v=fNerEo6Lstw
+//referencia : basado en https://www.youtube.com/watch?v=fNerEo6Lstw
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
