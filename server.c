@@ -48,10 +48,13 @@ void remove_client(int id_cliente){
 	pthread_mutex_lock(&clients_mutex);
 	int j =0;
 	for(j ; j<40; j++){
-		if(clients[j]->uid == id_cliente){ //verificar que sea el id del cliente a  eliminar
+		if(clients[j]!=NULL){
+				if(clients[j]->uid == id_cliente){ //verificar que sea el id del cliente a  eliminar
 			clients[j] = NULL; // se elimina
 			break;
 		}
+			}
+		
 	}
 	pthread_mutex_unlock(&clients_mutex);
 }
@@ -60,7 +63,9 @@ void broadcast_message(char *message, int uid){
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
 		for(l; l<40; l++){
+			//printf("%d",l);
 			if(clients[l]!=NULL){
+				//printf("si entre");
 			if(clients[l]->uid != uid){
 				write(clients[l]->sockfd, message, strlen(message));
 				break;
@@ -75,12 +80,36 @@ void message_user(char *message, int uid, int uid_receiver){
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
 		for(l; l<40; l++){
-			if(clients[l]!=NULL){
+			//printf("%d",l);
+		   if(clients[l]!=NULL){
 			if(clients[l]->uid != uid){
-			if(clients[l]->uid == uid_receiver){
-				write(clients[l]->sockfd, message, strlen(message));
-				break;
+				if(clients[l]->uid == uid_receiver){
+					write(clients[l]->sockfd, message, strlen(message));
+					break;
+					}
 			}
+		   }
+			
+		}
+		pthread_mutex_unlock(&clients_mutex);
+	}
+
+void show_connected(int uid){
+		//printf("im here");
+		pthread_mutex_lock(&clients_mutex);
+		int l=0;
+		int i = 0;
+		for(l; l<40; l++){
+			if(clients[l]!=NULL){
+			if(clients[l]->uid == uid){
+				for(i; i<40; i++){
+					if(clients[i]!=NULL){
+						char description[200];
+						sprintf(description, "Nombre: %s",clients[i]->name);
+						write(clients[l]->sockfd, description, strlen(description));
+					}	
+				}
+				
 				
 			}
 	}
@@ -89,14 +118,51 @@ void message_user(char *message, int uid, int uid_receiver){
 		pthread_mutex_unlock(&clients_mutex);
 	}
 
+void info_user(char *name, int uid){
+		pthread_mutex_lock(&clients_mutex);
+		int l=0;
+		int k = 0;
+		char description[200];
+		//printf("%s",name);
+
+		for(l; l<40; l++){
+			//printf("%d",l);
+		   if(clients[l]!=NULL){
+			if(clients[l]->uid == uid){
+				for(k; k<40; k++){
+						if(clients[k]!=NULL){
+							if(strcmp(clients[k]->name,name)==0){
+									//printf("hereeee");
+								
+								sprintf(description, "Nombre: %s, Ip: %s", clients[k]->name, clients[k]->ip_user);
+								write(clients[l]->sockfd, description, strlen(description));
+								}  
+								
+						}
+				}
+				if(strlen(description)==0){
+						write(clients[l]->sockfd, "No existe", 9);
+				}
+				
+			}
+			
+		   }
+			
+		}
+		
+		pthread_mutex_unlock(&clients_mutex);
+	}
+
 void *handle_client(void *arg){
 	char buffer[2000];
+	char option[2000];
+	char msg_client[15];
 	char name[40];
 	int active_user = 0;
 	clients_count++;
 
 	client_t *client = (client_t*)arg;
-	printf("Bienvenido %d con ip: %s", client->uid, client->ip_user);
+	printf("Bienvenido %d con ip: %s ", client->uid, client->ip_user);
 	//Establecer nombre de usuario
 	if(recv(client->sockfd, name, 40,0)<=0 || strlen(name)<2 || strlen(name) > 39){
 			
@@ -115,22 +181,64 @@ void *handle_client(void *arg){
 			break;
 		}
 		int receive = recv(client->sockfd, buffer, 2000, 0);
+		//int receive2 = recv(client->sockfd, msg_client, 2000,0);
+		//printf("buffer %s",buffer);
 		if(receive>0){
+			//printf("im here re");
 			if(strlen(buffer)>0){
-				broadcast_message(buffer, client->uid);
-				str_trim_lf(buffer, strlen(buffer));
-				printf("%s\n", buffer);
-			}
+				
+				if(strcmp(buffer, "show")==0){
+					sprintf(option, buffer);
+					bzero(buffer, 2000);
+					//printf("im here compare");
+					sprintf(buffer, "%s:%s\n", client->name,option);
+					printf("%s",buffer);
+					show_connected(client->uid);
+
+				}
+				if(strcmp(buffer, "broadcast")==0){
+					int receive2 = recv(client->sockfd, msg_client, 2000,0);
+					bzero(buffer, 2000);
+					//printf("im here compare");
+					sprintf(buffer, "%s:%s\n", client->name,msg_client);
+					broadcast_message(buffer, client->uid);
+					str_trim_lf(buffer, strlen(buffer));
+					printf("%s\n", buffer);
+
+				}if(strcmp(buffer, "info_user")==0){
+					int receive2 = recv(client->sockfd, msg_client, 2000,0);
+					bzero(buffer, 2000);
+					//printf("im here compare");
+					sprintf(buffer, "%s:%s\n", client->name,msg_client);
+					info_user(msg_client,client->uid);
+					str_trim_lf(buffer, strlen(buffer));
+					printf("%s\n", buffer);
+
+				}
+
+				if(strcmp(buffer, "exit")==0){
+					sprintf(buffer, "%s ha salido\n", client->name);
+					printf("%s",buffer);
+					broadcast_message(buffer, client->uid);
+					active_user = 1;
+
+				}
+				
+			} 
 		}else if(receive ==0 || strcmp(buffer, "exit")==0){
 			sprintf(buffer, "%s ha salido\n", client->name);
 			printf("%s",buffer);
 			broadcast_message(buffer, client->uid);
 			active_user = 1;
-		}else{
+		}
+		
+		else{
 			printf("ERROR");
 			active_user = 1;
 		}
 		bzero(buffer, 2000);
+		bzero(msg_client,2000);
+		bzero(option, 2000);
 	}
 	close(client->sockfd);
 	remove_client(client->uid);
