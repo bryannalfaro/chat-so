@@ -67,8 +67,12 @@ void broadcast_message(char *message, int uid){
 			if(clients[l]!=NULL){
 				//printf("si entre");
 			if(clients[l]->uid != uid){
-				write(clients[l]->sockfd, message, strlen(message));
-				break;
+				//printf("here broadcast\n");
+				//printf("nombre broadcast %s\n",clients[l]->name);
+				char description[200];
+				sprintf(description, "(public) %s\n",message);
+				write(clients[l]->sockfd,description, strlen(description));
+				//break;
 			}
 	}
 			
@@ -76,17 +80,23 @@ void broadcast_message(char *message, int uid){
 		pthread_mutex_unlock(&clients_mutex);
 	}
 
-void message_user(char *message, int uid, int uid_receiver){
+void message_user(char *message,char *receiver_user, int uid_sender){
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
+		int i = 0;
 		for(l; l<40; l++){
 			//printf("%d",l);
 		   if(clients[l]!=NULL){
-			if(clients[l]->uid != uid){
-				if(clients[l]->uid == uid_receiver){
-					write(clients[l]->sockfd, message, strlen(message));
-					break;
+			if(clients[l]->uid == uid_sender){
+				for(i;i<40;i++){
+					if(strcmp(clients[i]->name,receiver_user)==0){
+						char description[200];
+						sprintf(description, "(private) %s: %s\n",clients[l]->name, message);
+						write(clients[i]->sockfd, description, strlen(description));
+						break;
 					}
+				}
+				
 			}
 		   }
 			
@@ -94,8 +104,17 @@ void message_user(char *message, int uid, int uid_receiver){
 		pthread_mutex_unlock(&clients_mutex);
 	}
 
+void get_help(client_t *client){
+		pthread_mutex_lock(&clients_mutex);
+		char description[3000];
+		sprintf(description, "Para utilizar el chat debes escribir la opcion que deseas (ejemplo: broadcast)\n Luego de esto debes presionar enter y escribir de acuerdo a tu opcion \n Si eliges show solamente lo debes colocar. \n Si eliges broadcast debes luego escribir tu mensaje. \n Si eliges info_user debes luego escribir el nombre del usuario que deseas. \n Si eliges user_msg debes enviar el mensaje privado de la siguiente manera <usuario>-<mensaje>");
+		write(client->sockfd, description, strlen(description));
+
+		pthread_mutex_unlock(&clients_mutex);
+	}
+
 void show_connected(int uid){
-		//printf("im here");
+		
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
 		int i = 0;
@@ -104,9 +123,14 @@ void show_connected(int uid){
 			if(clients[l]->uid == uid){
 				for(i; i<40; i++){
 					if(clients[i]!=NULL){
-						char description[200];
-						sprintf(description, "Nombre: %s",clients[i]->name);
-						write(clients[l]->sockfd, description, strlen(description));
+						if(clients[i]->uid != uid){	
+							//printf("im here");
+							char description[200];
+							sprintf(description, "Nombre: %s\n",clients[i]->name);
+							send(clients[l]->sockfd, description, strlen(description),0);
+							bzero(description, 200);
+						}
+						
 					}	
 				}
 				
@@ -132,10 +156,10 @@ void info_user(char *name, int uid){
 				for(k; k<40; k++){
 						if(clients[k]!=NULL){
 							if(strcmp(clients[k]->name,name)==0){
-									//printf("hereeee");
-								
+								//printf("hereeee");
+								bzero(description,200);
 								sprintf(description, "Nombre: %s, Ip: %s", clients[k]->name, clients[k]->ip_user);
-								write(clients[l]->sockfd, description, strlen(description));
+								send(clients[l]->sockfd, description, strlen(description),0);
 								}  
 								
 						}
@@ -157,6 +181,7 @@ void *handle_client(void *arg){
 	char buffer[2000];
 	char option[2000];
 	char msg_client[15];
+	char user_msg[2000];
 	char name[40];
 	int active_user = 0;
 	clients_count++;
@@ -193,7 +218,9 @@ void *handle_client(void *arg){
 					//printf("im here compare");
 					sprintf(buffer, "%s:%s\n", client->name,option);
 					printf("%s",buffer);
+					bzero(buffer, 2000);
 					show_connected(client->uid);
+					bzero(buffer, 2000);
 
 				}
 				if(strcmp(buffer, "broadcast")==0){
@@ -213,6 +240,36 @@ void *handle_client(void *arg){
 					info_user(msg_client,client->uid);
 					str_trim_lf(buffer, strlen(buffer));
 					printf("%s\n", buffer);
+
+				}if(strcmp(buffer, "user_msg")==0){
+					bzero(msg_client,2000);
+					bzero(user_msg,2000);
+					//printf("im here compare");
+					int receive2 = recv(client->sockfd, msg_client, 2000,0); //mensaje
+					sprintf(buffer, "initial %s:%s\n", client->name,msg_client);
+					printf("%s",buffer);
+					const char delimitier[] = "-";
+					char *mess_2;
+					strtok(msg_client, delimitier);
+					mess_2 = strtok(NULL, delimitier);
+					
+					bzero(buffer, 2000);
+					//printf("im here compare");
+					//sprintf(buffer, "hehe%s:%s\n", client->name,msg_client);
+					//printf("%s\n", buffer);
+					
+					message_user(mess_2, msg_client, client->uid);
+					
+					//show_connected(client->uid);
+					str_trim_lf(buffer, strlen(buffer));
+					//printf("hoho%s\n", buffer);
+					bzero(buffer, 2000);
+					bzero(msg_client,2000);
+					bzero(option, 2000);
+					bzero(user_msg,2000);
+
+				}if(strcmp(buffer, "help")==0){
+					get_help(client);
 
 				}
 
@@ -239,6 +296,7 @@ void *handle_client(void *arg){
 		bzero(buffer, 2000);
 		bzero(msg_client,2000);
 		bzero(option, 2000);
+		bzero(user_msg,2000);
 	}
 	close(client->sockfd);
 	remove_client(client->uid);
@@ -299,9 +357,11 @@ int main(int argc, char **argv){
 	add_client(client);
 	pthread_create(&tid, NULL, &handle_client, (void*)client); //Hilo del cliente
 	sleep(1);        
-//close(newsockfd);
+
     }
-    //close(sockfd);
+	signal(SIGPIPE, SIG_IGN);
+    close(newsockfd);
+    close(sockfd);
 
     return 0;
 }
