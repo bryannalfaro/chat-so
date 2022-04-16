@@ -25,7 +25,7 @@ void str_trim_lf(char* arr, int length){
 
 
 void str_overwrite(){
-	printf("\r%s", ">>>> ");
+	printf("%s", ">>>> ");
 	fflush(stdout);
 }
 
@@ -34,7 +34,7 @@ void catch_exit(){
 	}
 
 void recv_msg(){
-	//printf("im receiving");
+	//printf("im receiving\n");
 	char msg[2000] = {};
 	while(1){
 		int receive = recv(sockfd,msg,2000,0);
@@ -50,9 +50,10 @@ void recv_msg(){
 }
 
 void sendv_msg(){
-	//printf("IM sending");
+	//printf("IM sending\n");
 	char buffer[2048] = {};
 	char msg[2000] = {};
+	char option[2000] = {};
 	while(1){
 		//printf("here");
 		str_overwrite();
@@ -63,14 +64,57 @@ void sendv_msg(){
 		
 		if(strcmp(msg, "exit")==0){
 				break;
+			}else if(strcmp(msg, "show")==0){
+				//printf("f");
+				bzero(buffer, 2040);
+				sprintf(buffer, "%s", msg);
+				send(sockfd, buffer, strlen(buffer),0);
+				//send(sockfd, buffer, strlen(buffer),0);
+			}
+			else if(strcmp(msg, "broadcast")==0){
+				//printf("broadcast here\n");
+				bzero(buffer, 2040);
+				//bzero(msg, 2000);
+				
+				str_overwrite();
+				//printf("Here 2");
+				fgets(option, 2000, stdin);
+				//printf("here 3");
+				str_trim_lf(msg, 2000);
+				str_trim_lf(option, 2000);
+				sprintf(buffer, "%s",msg);//opcion
+				send(sockfd, buffer, strlen(buffer),0);
+				bzero(buffer, 2040);
+				sprintf(buffer, "%s",option); //mensaje
+				//printf("buffer broadcast %s", buffer);
+				send(sockfd, buffer, strlen(buffer),0);
+				
+			}else if(strcmp(msg, "info_user")==0){
+				//printf("broadcast here\n");
+				bzero(buffer, 2040);
+				//bzero(msg, 2000);
+				
+				str_overwrite();
+				//printf("Here 2");
+				fgets(option, 2000, stdin);
+				//printf("here 3");
+				str_trim_lf(msg, 2000);
+				str_trim_lf(option, 2000);
+				sprintf(buffer, "%s",msg);//opcion
+				send(sockfd, buffer, strlen(buffer),0);
+				bzero(buffer, 2040);
+				sprintf(buffer, "%s",option); //usuario elegido
+				//printf("buffer broadcast %s", buffer);
+				send(sockfd, buffer, strlen(buffer),0);
+				
 			}
 			else{
-				printf("hhh");
-				sprintf(buffer, "%s: %s", name, msg);
-				send(sockfd, buffer, strlen(buffer),0);
+				printf("error");
+				flag=1;
 			}
 			bzero(buffer, 2040);
 			bzero(msg, 2000);
+			bzero(option,2000);
 		}
 		catch_exit();
 }
@@ -112,7 +156,12 @@ int main(int argc, char *argv[]){
         exit(1);
     }
 send(sockfd, name, 40, 0);
-//printf("WELCOME");
+printf("WELCOME\n");
+printf("Type the option: \n");
+printf("show\n");
+printf("broadcast\n");
+printf("info_user\n");
+printf("exit\n");
 pthread_t send_msg;
 if(pthread_create(&send_msg, NULL ,(void *)sendv_msg,NULL)!=0){
 		printf("ERROR");
