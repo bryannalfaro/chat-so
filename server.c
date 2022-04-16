@@ -7,6 +7,7 @@
 #include<netinet/in.h>
 #include<pthread.h>
 #include<signal.h>
+#include<arpa/inet.h>
 
 static int uid = 1;
 static _Atomic unsigned int clients_count = 0;
@@ -324,7 +325,7 @@ int main(int argc, char **argv){
     portno = atoi(argv[1]);
     int option = 1;
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("192.168.1.11");
+    serv_addr.sin_addr.s_addr = inet_addr("192.168.1.13"); //change according to machine
     serv_addr.sin_port = htons(portno);
 	
 	signal(SIGPIPE, SIG_IGN);
