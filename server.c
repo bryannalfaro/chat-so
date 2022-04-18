@@ -8,9 +8,10 @@
 #include<pthread.h>
 #include<signal.h>
 #include<arpa/inet.h>
+#include<time.h>
 
 static int uid = 1;
-static _Atomic unsigned int clients_count = 0;
+static _Atomic unsigned int clients_count = 0; //permite evitar race conditions ya que es variable para todos los hilos
 //Estructura para el cliente
 typedef struct{
 	struct sockaddr_in address;
@@ -18,6 +19,8 @@ typedef struct{
 	int uid;
 	char name[40];
 	char ip_user[20];
+	char status[10];
+	time_t join_time;
 } client_t;
 client_t *clients[40]; //Lista de clientes
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -92,11 +95,31 @@ void message_user(char *message,char *receiver_user, int uid_sender){
 				for(i;i<40;i++){
 					if(strcmp(clients[i]->name,receiver_user)==0){
 						char description[200];
-						sprintf(description, "(private) %s: %s\n",clients[l]->name, message);
+						sprintf(description, "(private) (%s) %s: %s\n",clients[l]->status,clients[l]->name, message);
 						write(clients[i]->sockfd, description, strlen(description));
 						break;
 					}
 				}
+				
+			}
+		   }
+			
+		}
+		pthread_mutex_unlock(&clients_mutex);
+	}
+
+void change_status(char *message,int uid_client){
+		pthread_mutex_lock(&clients_mutex);
+		int l=0;
+		int i = 0;
+		for(l; l<40; l++){
+			//printf("%d",l);
+		   if(clients[l]!=NULL){
+			if(clients[l]->uid == uid_client){
+				bzero(clients[l]->status, strlen(clients[l]->status));
+				sprintf(clients[l]->status, "%s", message);
+				printf("yey: %s", clients[l]->status);
+				
 				
 			}
 		   }
@@ -127,7 +150,7 @@ void show_connected(int uid){
 						if(clients[i]->uid != uid){	
 							//printf("im here");
 							char description[200];
-							sprintf(description, "Nombre: %s\n",clients[i]->name);
+							sprintf(description, "Nombre: %s Estado: %s\n",clients[i]->name, clients[i]->status);
 							send(clients[l]->sockfd, description, strlen(description),0);
 							bzero(description, 200);
 						}
@@ -159,7 +182,7 @@ void info_user(char *name, int uid){
 							if(strcmp(clients[k]->name,name)==0){
 								//printf("hereeee");
 								bzero(description,200);
-								sprintf(description, "Nombre: %s, Ip: %s", clients[k]->name, clients[k]->ip_user);
+								sprintf(description, "Nombre: %s, Ip: %s, Estado: %s", clients[k]->name, clients[k]->ip_user, clients[k]->status);
 								send(clients[l]->sockfd, description, strlen(description),0);
 								}  
 								
@@ -197,12 +220,14 @@ void *handle_client(void *arg){
 		}
 	else{
 		strcpy(client->name, name);
-		sprintf(buffer, "%s se ha unido\n", client->name);
+		sprintf(buffer, "(%s) %s se ha unido\n",client->status, client->name);
 		printf("%s", buffer);
 		broadcast_message(buffer, client->uid);
 	}
 	bzero(buffer, 2000);
 	while(1){
+		//bzero(buffer, 2000);
+		
 		if(active_user){
 			break;
 		}
@@ -228,7 +253,7 @@ void *handle_client(void *arg){
 					int receive2 = recv(client->sockfd, msg_client, 2000,0);
 					bzero(buffer, 2000);
 					//printf("im here compare");
-					sprintf(buffer, "%s:%s\n", client->name,msg_client);
+					sprintf(buffer, "(%s) %s:%s\n", client->status,client->name,msg_client);
 					broadcast_message(buffer, client->uid);
 					str_trim_lf(buffer, strlen(buffer));
 					printf("%s\n", buffer);
@@ -271,6 +296,27 @@ void *handle_client(void *arg){
 
 				}if(strcmp(buffer, "help")==0){
 					get_help(client);
+
+				}if(strcmp(buffer, "change-status")==0){
+					bzero(msg_client,2000);
+
+					//printf("im here compare");
+					int receive2 = recv(client->sockfd, msg_client, 2000,0); //mensaje
+					sprintf(buffer, "changing status %s:%s\n", client->name,msg_client);
+					printf("%s",buffer);
+					
+					bzero(buffer, 2000);
+					//printf("im here compare");
+					sprintf(buffer, "%s",msg_client);
+					//printf("%s\n", buffer);
+					
+					change_status(msg_client, client->uid);
+					
+					
+					bzero(buffer, 2000);
+					bzero(msg_client,2000);
+					bzero(option, 2000);
+					
 
 				}
 
@@ -324,8 +370,9 @@ int main(int argc, char **argv){
    
     portno = atoi(argv[1]);
     int option = 1;
+    char status[10];
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("192.168.1.13"); //change according to machine
+    serv_addr.sin_addr.s_addr = inet_addr("192.168.1.11"); //change according to machine
     serv_addr.sin_port = htons(portno);
 	
 	signal(SIGPIPE, SIG_IGN);
@@ -354,7 +401,8 @@ int main(int argc, char **argv){
 	client->sockfd = newsockfd;
 	client->uid = uid++;
 	sprintf(client->ip_user, "%s",inet_ntoa(cli_addr.sin_addr));
-	
+	sprintf(status, "ACTIVO");
+	sprintf(client->status, "%s", status); 
 	add_client(client);
 	pthread_create(&tid, NULL, &handle_client, (void*)client); //Hilo del cliente
 	sleep(1);        
