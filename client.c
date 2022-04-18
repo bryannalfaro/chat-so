@@ -170,6 +170,32 @@ void sendv_msg(){
 				//send(sockfd, buffer, strlen(buffer),0);
 				
 				
+			}else if(strcmp(msg, "change-status")==0){
+				printf("Escoge entre > ACTIVO , OCUPADO , INACTIVO\n");
+				//printf("broadcast here\n");
+				bzero(buffer, 2040);
+				//bzero(msg, 2000);
+				
+				str_overwrite();
+				//printf("Here 2");
+				fgets(option, 2000, stdin);
+				
+				//printf("here 3");
+				str_trim_lf(msg, 2000);
+				str_trim_lf(option, 2000);
+				sprintf(buffer, "%s",msg);//opcion
+				send(sockfd, buffer, strlen(buffer),0);
+				
+				bzero(buffer, 2040);
+				/*const char delimitier[] = " ";
+				char *mess_2;
+				strtok(option,delimitier);
+				mess_2 = strtok(NULL,delimitier); //mensaje*/
+				sprintf(buffer, "%s",option); //estado elegido
+				//printf("usuario %s\n", buffer);
+				send(sockfd, buffer, strlen(buffer),0);
+				
+				
 			}
 			else{
 				printf("error");
@@ -228,6 +254,7 @@ printf("info_user\n");
 printf("user_msg\n");
 printf("exit\n");
 printf("help\n");
+printf("change-status\n");
 pthread_t send_msg;
 if(pthread_create(&send_msg, NULL ,(void *)sendv_msg,NULL)!=0){
 		printf("ERROR");
