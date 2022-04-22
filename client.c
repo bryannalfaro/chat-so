@@ -10,6 +10,7 @@
 #include<signal.h>
 #include<pthread.h>
 #include<arpa/inet.h>
+#include<json-c/json.h>
 volatile sig_atomic_t flag = 0;
 int sockfd=0;
 char name[40];
@@ -35,19 +36,42 @@ void catch_exit(){
 	}
 
 void recv_msg(){
-	//printf("im receiving\n");
 	char msg[2000] = {};
 	while(1){
-		//printf("ff");
 		bzero(msg, 2000);
 		int receive= 0;
 		receive = recv(sockfd,msg,2000,0);
-		//printf("receive %d",receive);
-		//str_overwrite();
+
 		if(receive > 0){
-			//printf("vv si");
-			printf("%s\n",msg);
-			//receive=0;
+			struct json_object *parsed_json;
+			struct json_object *response;
+			parsed_json = json_tokener_parse(msg);
+			json_object_object_get_ex(parsed_json,"response",&response);
+
+			if(strcmp(json_object_get_string(response),"PUT_STATUS")==0){
+				struct json_object *code;
+				json_object_object_get_ex(parsed_json, "code", &code);
+				if(json_object_get_int(code) == 200){
+						printf("%s\n","Cambio de estado exitoso");
+					} 
+			}if(strcmp(json_object_get_string(response),"GET_USER")==0){
+				struct json_object *code;
+				json_object_object_get_ex(parsed_json, "code", &code);
+
+				if(json_object_get_int(code) == 200){
+						struct json_object *body;
+						json_object_object_get_ex(parsed_json, "body", &body);
+						size_t num = json_object_array_length(body);
+						if(num>40){
+								//se trata de IP de un usuario
+								printf("Se obtuvo lo siguiente \n ip de usuario: %s\n",json_object_get_string(body));
+						}else{		//Se trata de un array
+								printf("Usuarios activos \n %s\n",json_object_get_string(body));
+						}
+						
+					} 
+			}
+
 			str_overwrite();
 			
 		}else if(receive==0){
@@ -62,32 +86,27 @@ void recv_msg(){
 }
 
 void sendv_msg(){
-	//printf("IM sending\n");
 	char buffer[2048] = {};
 	char msg[2000] = {};
 	char option[2000] = {};
 	while(1){
-		//printf("here");
 		str_overwrite();
-		//printf("Here 2");
 		fgets(msg, SIZE, stdin);
-		//printf("here 3");
 		str_trim_lf(msg, 2000);
 		
 		if(strcmp(msg, "exit")==0){
 				break;
 			}else if(strcmp(msg, "show")==0){
-				//printf("fshow");
+				
 				bzero(buffer, 2040);
-				sprintf(buffer, "%s", msg);
+				char req[12] = "GET_USER";
+				sprintf(buffer, "{'request': '%s','body': 'all'}",req);//opcion
+			
 				send(sockfd, buffer, strlen(buffer),0);
-				//str_overwrite();
-				//send(sockfd, buffer, strlen(buffer),0);
+				
 			}
 			else if(strcmp(msg, "broadcast")==0){
-				//printf("broadcast here\n");
 				bzero(buffer, 2040);
-				//bzero(msg, 2000);
 				
 				str_overwrite();
 				//printf("Here 2");
@@ -103,30 +122,25 @@ void sendv_msg(){
 				send(sockfd, buffer, strlen(buffer),0);
 				
 			}else if(strcmp(msg, "info_user")==0){
-				//printf("broadcast here\n");
+				
 				bzero(buffer, 2040);
-				//bzero(msg, 2000);
 				
 				str_overwrite();
-				//printf("Here 2");
 				fgets(option, 2000, stdin);
-				//printf("here 3");
-				str_trim_lf(msg, 2000);
+				
+				char req[12] = "GET_USER";
 				str_trim_lf(option, 2000);
-				sprintf(buffer, "%s",msg);//opcion
+				sprintf(buffer, "{'request': '%s','body': '%s'}",req,option);//opcion
 				send(sockfd, buffer, strlen(buffer),0);
 				bzero(buffer, 2040);
-				sprintf(buffer, "%s",option); //usuario elegido
-				//printf("buffer broadcast %s", buffer);
-				send(sockfd, buffer, strlen(buffer),0);
-				
+
 			}else if(strcmp(msg, "user_msg")==0){
-				//printf("broadcast here\n");
+				
 				bzero(buffer, 2040);
-				//bzero(msg, 2000);
+				
 				
 				str_overwrite();
-				//printf("Here 2");
+				
 				fgets(option, 2000, stdin);
 				
 				//printf("here 3");
@@ -136,12 +150,9 @@ void sendv_msg(){
 				send(sockfd, buffer, strlen(buffer),0);
 				
 				bzero(buffer, 2040);
-				/*const char delimitier[] = " ";
-				char *mess_2;
-				strtok(option,delimitier);
-				mess_2 = strtok(NULL,delimitier); //mensaje*/
+				
 				sprintf(buffer, "%s",option); //usuario elegido
-				//printf("usuario %s\n", buffer);
+				
 				send(sockfd, buffer, strlen(buffer),0);
 				
 				
@@ -181,19 +192,22 @@ void sendv_msg(){
 				fgets(option, 2000, stdin);
 				
 				//printf("here 3");
-				str_trim_lf(msg, 2000);
-				str_trim_lf(option, 2000);
-				sprintf(buffer, "%s",msg);//opcion
+				str_trim_lf(msg, 2000); // opcion 
+				str_trim_lf(option, 2000);//que cambio hacer
+				int choice;
+				if(strcmp(option, "ACTIVO")==0){
+					choice = 0;
+				}else if (strcmp(option, "OCUPADO")==0){
+					choice = 1;
+				}else if (strcmp(option, "INACTIVO")==0){
+					choice =2;
+				}
+				char req[12] = "PUT_STATUS";
+				sprintf(buffer, "{'request': '%s','body': '%d'}",req,choice);//opcion
+				
 				send(sockfd, buffer, strlen(buffer),0);
 				
 				bzero(buffer, 2040);
-				/*const char delimitier[] = " ";
-				char *mess_2;
-				strtok(option,delimitier);
-				mess_2 = strtok(NULL,delimitier); //mensaje*/
-				sprintf(buffer, "%s",option); //estado elegido
-				//printf("usuario %s\n", buffer);
-				send(sockfd, buffer, strlen(buffer),0);
 				
 				
 			}
