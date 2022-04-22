@@ -9,6 +9,7 @@
 #include<signal.h>
 #include<arpa/inet.h>
 #include<time.h>
+#include <json-c/json.h>
 
 static int uid = 1;
 static _Atomic unsigned int clients_count = 0; //permite evitar race conditions ya que es variable para todos los hilos
@@ -124,6 +125,9 @@ void change_status(char *message,int uid_client){
 			if(clients[l]->uid == uid_client){
 				bzero(clients[l]->status, strlen(clients[l]->status));
 				sprintf(clients[l]->status, "%s", message);
+                char description[200];
+                sprintf(description, "{'response': 'PUT_STATUS','code':200}");
+                write(clients[l]->sockfd, description,strlen(description));
 				printf("yey: %s", clients[l]->status);
 				
 				
@@ -144,10 +148,12 @@ void get_help(client_t *client){
 	}
 
 void show_connected(int uid){
-		
+		char users[40][200];
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
 		int i = 0;
+        char description[200];
+        char arrayf[1000]="";
 		for(l; l<40; l++){
 			if(clients[l]!=NULL){
 			if(clients[l]->uid == uid){
@@ -155,14 +161,21 @@ void show_connected(int uid){
 					if(clients[i]!=NULL){
 						if(clients[i]->uid != uid){	
 							//printf("im here");
-							char description[200];
-							sprintf(description, "Nombre: %s Estado: %s\n",clients[i]->name, clients[i]->status);
-							send(clients[l]->sockfd, description, strlen(description),0);
+							
+                            sprintf(description, " '(%s) %s', ",clients[i]->status,clients[i]->name);
+							strcat(arrayf, description);
 							bzero(description, 200);
 						}
 						
-					}	
+					}
+                    
+                    
+                    //send(clients[l]->sockfd, description, strlen(description),0);	
 				}
+                //char stkr[100] = "'paco','perez'";
+                sprintf(description, "{'response': 'GET_USER','code':200,'body':[%s]}",arrayf);
+                write(clients[l]->sockfd, description,strlen(description));
+                break;
 				
 				
 			}
@@ -188,8 +201,12 @@ void info_user(char *name, int uid){
 							if(strcmp(clients[k]->name,name)==0){
 								//printf("hereeee");
 								bzero(description,200);
-								sprintf(description, "Nombre: %s, Ip: %s, Estado: %s", clients[k]->name, clients[k]->ip_user, clients[k]->status);
-								send(clients[l]->sockfd, description, strlen(description),0);
+                
+                                 sprintf(description, "{'response': 'GET_USER','code':200,'body':'%s'}",clients[k]->ip_user);
+                                 write(clients[l]->sockfd, description,strlen(description));
+								//sprintf(description, "Nombre: %s, Ip: %s, Estado: %s", clients[k]->name, clients[k]->ip_user, clients[k]->status);
+								//send(clients[l]->sockfd, description, strlen(description),0);
+                                break;
 								}  
 								
 						}
@@ -213,6 +230,7 @@ void *handle_client(void *arg){
 	char msg_client[15];
 	char user_msg[2000];
 	char name[40];
+    char debug[20];
 	int active_user = 0;
 	clients_count++;
 
@@ -228,7 +246,7 @@ void *handle_client(void *arg){
 		strcpy(client->name, name);
 		sprintf(buffer, "(%s) %s se ha unido\n",client->status, client->name);
 		printf("%s", buffer);
-		broadcast_message(buffer, client->uid);
+		//broadcast_message(buffer, client->uid); DESCOMENTAR CUANDO SE ARREGLE
 	}
 	bzero(buffer, 2000);
 	while(1){
@@ -244,14 +262,22 @@ void *handle_client(void *arg){
 			//printf("im here re");
 			if(strlen(buffer)>0){
 				//Aqui parsear
-				if(strcmp(buffer, "show")==0){
-					sprintf(option, buffer);
-					bzero(buffer, 2000);
-					//printf("im here compare");
-					sprintf(buffer, "%s:%s\n", client->name,option);
-					printf("%s",buffer);
-					bzero(buffer, 2000);
-					show_connected(client->uid);
+                struct json_object *parsed_json;
+                struct json_object *request;
+                parsed_json= json_tokener_parse(buffer);
+                json_object_object_get_ex(parsed_json,"request",&request);
+
+				if(strcmp(json_object_get_string(request), "GET_USER")==0){
+                    struct json_object *body;
+                    json_object_object_get_ex(parsed_json,"body",&body);
+                    
+                    if(strcmp(json_object_get_string(body), "all")==0){
+                            show_connected(client->uid);
+                    }else {
+                        sprintf(debug, json_object_get_string(body),strlen(json_object_get_string(body)));
+                      printf("%s",debug);
+                        info_user(json_object_get_string(body),client->uid);
+                    }
 					bzero(buffer, 2000);
 
 				}
@@ -264,16 +290,16 @@ void *handle_client(void *arg){
 					//str_trim_lf(buffer, strlen(buffer));
 					printf("%s\n", buffer);
 
-				}if(strcmp(buffer, "info_user")==0){
-					int receive2 = recv(client->sockfd, msg_client, 2000,0);
-					bzero(buffer, 2000);
+				}/*if(strcmp(buffer, "info_user")==0){
+					//int receive2 = recv(client->sockfd, msg_client, 2000,0);
+					//bzero(buffer, 2000);
 					//printf("im here compare");
-					sprintf(buffer, "%s:%s\n", client->name,msg_client);
-					info_user(msg_client,client->uid);
-					str_trim_lf(buffer, strlen(buffer));
-					printf("%s\n", buffer);
+					//sprintf(buffer, "%s:%s\n", client->name,msg_client);
+					//info_user(msg_client,client->uid);
+					//str_trim_lf(buffer, strlen(buffer));
+					//printf("%s\n", buffer);
 
-				}if(strcmp(buffer, "user_msg")==0){
+				}*/if(strcmp(buffer, "user_msg")==0){
 					//printf("im here compare");
 					int receive2 = recv(client->sockfd, msg_client, 2000,0); //user mensaje
 					sprintf(buffer, "initial %s:%s\n", client->name,msg_client);
@@ -306,26 +332,23 @@ void *handle_client(void *arg){
 				}if(strcmp(buffer, "help")==0){
 					get_help(client);
 
-				}if(strcmp(buffer, "change-status")==0){
+				}if(strcmp(json_object_get_string(request), "PUT_STATUS")==0){
 					bzero(msg_client,2000);
 
 					//printf("im here compare");
-					int receive2 = recv(client->sockfd, msg_client, 2000,0); //mensaje
-					sprintf(buffer, "changing status %s:%s\n", client->name,msg_client);
+					//int receive2 = recv(client->sockfd, msg_client, 2000,0); //mensaje
+					struct json_object *body;
+                    json_object_object_get_ex(parsed_json,"body",&body);
+                    if(json_object_get_int(body)==0){
+                            change_status("ACTIVO", client->uid);
+                    }else if(json_object_get_int(body)==1){
+                        change_status("OCUPADO", client->uid);
+                    }else if(json_object_get_int(body)==2){
+                        change_status("INACTIVO", client->uid);
+                    }
+                    sprintf(buffer, "changing status %s:%d\n", client->name,json_object_get_int(body));
 					printf("%s",buffer);
-					
-					bzero(buffer, 2000);
-					//printf("im here compare");
-					sprintf(buffer, "%s",msg_client);
-					//printf("%s\n", buffer);
-					
-					change_status(msg_client, client->uid);
-					
-					
-					bzero(buffer, 2000);
-					bzero(msg_client,2000);
-					bzero(option, 2000);
-					
+									
 
 				}
 
