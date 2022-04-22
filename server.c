@@ -20,7 +20,7 @@ typedef struct{
 	char name[40];
 	char ip_user[20];
 	char status[10];
-	time_t join_time;
+	time_t last_interaction;
 } client_t;
 client_t *clients[40]; //Lista de clientes
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -40,7 +40,7 @@ void add_client(client_t *cliente){
 	pthread_mutex_lock(&clients_mutex);
 	int j =0;
 	for(j; j<40; ++j){
-		if(clients[j] == NULL){ //verificar que ese espacio este vacio
+		if(clients[j] == NULL || clients[j]->name == cliente->name){ //verificar que ese espacio este vacio
 			clients[j] = cliente; //agregarlo al queue
 			break;
 		}
@@ -66,6 +66,11 @@ void remove_client(int id_cliente){
 void broadcast_message(char *message, int uid){
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
+		time_t actualTime;
+  		struct tm * timeinfo;
+
+  		time ( &actualTime );
+  		timeinfo = localtime ( &actualTime );
 		for(l; l<40; l++){
 			//printf("%d",l);
 			if(clients[l]!=NULL){
@@ -76,6 +81,7 @@ void broadcast_message(char *message, int uid){
 				char description[200];
 				sprintf(description, "(public) %s\n",message);
 				write(clients[l]->sockfd,description, strlen(description));
+				sprintf("")
 				//break;
 			}
 	}
