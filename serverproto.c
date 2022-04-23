@@ -55,12 +55,14 @@ void remove_client(int id_cliente){
 	for(j ; j<40; j++){
 		if(clients[j]!=NULL){
 				if(clients[j]->uid == id_cliente){ //verificar que sea el id del cliente a  eliminar
+				
 			clients[j] = NULL; // se elimina
 			break;
 		}
 			}
 		
 	}
+	
 	pthread_mutex_unlock(&clients_mutex);
 }
 
@@ -128,7 +130,7 @@ void change_status(char *message,int uid_client){
                 char description[200];
                 sprintf(description, "{'response': 'PUT_STATUS','code':200}");
                 write(clients[l]->sockfd, description,strlen(description));
-				printf("yey: %s", clients[l]->status);
+				printf("Changed status to: %s", clients[l]->status);
 				
 				
 			}
@@ -169,6 +171,30 @@ void show_connected(int uid){
                 sprintf(description, "{'response': 'GET_USER','code':200,'body':[%s]}",arrayf);
                 write(clients[l]->sockfd, description,strlen(description));
                 break;
+				
+				
+			}
+	}
+			
+	}
+		pthread_mutex_unlock(&clients_mutex);
+	}
+
+void send_res(char * name){
+		char users[40][200];
+		pthread_mutex_lock(&clients_mutex);
+		int l=0;
+		int i = 0;
+        char description[200];
+        char arrayf[1000]="";
+		for(l; l<40; l++){
+			if(clients[l]!=NULL){
+			if(clients[l]->name == name){
+				
+				//char stkr[100] = "'paco','perez'";
+				sprintf(description, "{'response': 'END_CONEX','code':200}");
+				write(clients[l]->sockfd, description,strlen(description));
+				break;
 				
 				
 			}
@@ -228,9 +254,48 @@ void *handle_client(void *arg){
 	clients_count++;
 
 	client_t *client = (client_t*)arg;
-	printf("Bienvenido %d con ip: %s ", client->uid, client->ip_user);
+	//printf("legue");
+	recv(client->sockfd, buffer, sizeof(buffer),0);
+	//printf("Bienvenido %d con ip: %s ", client->uid, client->ip_user);
 	//Establecer nombre de usuario
-	if(recv(client->sockfd, name, 40,0)<=0 || strlen(name)<2 || strlen(name) > 39){
+	struct json_object *parsed_json;
+        struct json_object *request;
+        struct json_object *data_body;
+        parsed_json= json_tokener_parse(buffer);
+        json_object_object_get_ex(parsed_json,"request",&request);
+        //printf("%s vino", json_object_get_string(request));
+        if(strcmp(json_object_get_string(request),"INIT_CONEX")==0){
+        		//printf("si %d",client->uid);
+        		struct json_object *body;
+        		int i;
+        		json_object_object_get_ex(parsed_json,"body",&body);
+        		size_t num = json_object_array_length(body);
+        		//printf(" este string%s",json_object_get_string(body));
+        		bzero(buffer, 2000);
+        		for(i=0; i<num; i++){
+        			data_body = json_object_array_get_idx(body, i);
+        			if(i==0){
+        				client->last_interaction = (int)json_object_get_string(data_body);
+        			}else{
+        				if( strlen(json_object_get_string(data_body))<2 || strlen(json_object_get_string(data_body)) > 39){
+			
+					printf("NO name");
+					active_user = 1 ;
+					}
+					else{
+						strcpy(client->name, json_object_get_string(data_body));
+						sprintf(buffer, "(%s) %s se ha unido\n",client->status, client->name);
+						printf("%s", buffer);
+						
+						//broadcast_message(buffer, client->uid); DESCOMENTAR CUANDO SE ARREGLE
+					}
+        			}
+  
+        		}
+        	}
+        write(client->sockfd,"{'response': 'INIT_CONEX','code':200}",44);
+        //recv(client->sockfd, name, 40,0)<=0
+	/*if( strlen(name)<2 || strlen(name) > 39){
 			
 		printf("NO name");
 		active_user = 1 ;
@@ -240,7 +305,7 @@ void *handle_client(void *arg){
 		sprintf(buffer, "(%s) %s se ha unido\n",client->status, client->name);
 		printf("%s", buffer);
 		//broadcast_message(buffer, client->uid); DESCOMENTAR CUANDO SE ARREGLE
-	}
+	}*/
 	bzero(buffer, 2000);
 	while(1){
 		//bzero(buffer, 2000);
@@ -260,7 +325,7 @@ void *handle_client(void *arg){
                 parsed_json= json_tokener_parse(buffer);
                 json_object_object_get_ex(parsed_json,"request",&request);
 
-				if(strcmp(json_object_get_string(request), "GET_USER")==0){
+		if(strcmp(json_object_get_string(request), "GET_USER")==0){
                     struct json_object *body;
                     json_object_object_get_ex(parsed_json,"body",&body);
                     
@@ -342,19 +407,24 @@ void *handle_client(void *arg){
 
 				}
 
-				if(strcmp(buffer, "exit")==0){
+				if(strcmp(json_object_get_string(request), "END_CONEX")==0){
 					sprintf(buffer, "%s ha salido\n", client->name);
 					printf("%s",buffer);
-					broadcast_message(buffer, client->uid);
+					send_res(client->name);
+					
+					// broadcast_message(buffer, client->uid); QUITAR CUANDO SE ARREGLE BROADCAST
+					
 					active_user = 1;
 
 				}
 				
 			} 
-		}else if(receive ==0 || strcmp(buffer, "exit")==0){
+		}else if(receive ==0){
 			sprintf(buffer, "%s ha salido\n", client->name);
 			printf("%s",buffer);
-			broadcast_message(buffer, client->uid);
+			send_res(client->name);
+			
+			//broadcast_message(buffer, client->uid); QUITAR CUANDO SE ARREGLE BROADCAST 
 			active_user = 1;
 		}
 		
@@ -418,6 +488,7 @@ int main(int argc, char **argv){
 	//sprintf(d, "Your ip: %s", inet_ntoa(cli_addr.sin_addr)); 
         //send(newsockfd, "Hello, world from server!\n", 26, 0);
 	//send(newsockfd,(const void *)d,25,0);
+	
 	client_t *client = (client_t*)malloc(sizeof(client_t));
 	client->address = cli_addr;
 	client->sockfd = newsockfd;
