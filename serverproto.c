@@ -138,14 +138,7 @@ void change_status(char *message,int uid_client){
 		pthread_mutex_unlock(&clients_mutex);
 	}
 
-void get_help(client_t *client){
-		pthread_mutex_lock(&clients_mutex);
-		char description[3000];
-		sprintf(description, "Para utilizar el chat debes escribir la opcion que deseas (ejemplo: broadcast)\n Luego de esto debes presionar enter y escribir de acuerdo a tu opcion \n Si eliges show solamente lo debes colocar. \n Si eliges broadcast debes luego escribir tu mensaje. \n Si eliges info_user debes luego escribir el nombre del usuario que deseas. \n Si eliges user_msg debes enviar el mensaje privado de la siguiente manera <usuario>-<mensaje>");
-		write(client->sockfd, description, strlen(description));
 
-		pthread_mutex_unlock(&clients_mutex);
-	}
 
 void show_connected(int uid){
 		char users[40][200];
@@ -328,9 +321,6 @@ void *handle_client(void *arg){
 					//show_connected(client->uid);
 					//str_trim_lf(buffer, strlen(buffer));
 					//printf("hoho%s\n", buffer);
-
-				}if(strcmp(buffer, "help")==0){
-					get_help(client);
 
 				}if(strcmp(json_object_get_string(request), "PUT_STATUS")==0){
 					bzero(msg_client,2000);

@@ -85,6 +85,13 @@ void recv_msg(){
 	}
 }
 
+void get_help(){
+		
+		char description[3000];
+		sprintf(description, "Para utilizar el chat debes escribir la opcion que deseas (ejemplo: broadcast)\n Luego de esto debes presionar enter y escribir de acuerdo a tu opcion \n Si eliges show solamente lo debes colocar. \n Si eliges broadcast debes luego escribir tu mensaje. \n Si eliges info_user debes luego escribir el nombre del usuario que deseas. \n Si eliges user_msg debes enviar el mensaje privado de la siguiente manera <usuario>-<mensaje>\n");
+		printf("%s",description);
+	}
+
 void sendv_msg(){
 	char buffer[2048] = {};
 	char msg[2000] = {};
@@ -157,28 +164,9 @@ void sendv_msg(){
 				
 				
 			}else if(strcmp(msg, "help")==0){
-				//printf("broadcast here\n");
-				bzero(buffer, 2040);
-				//bzero(msg, 2000);
 				
-				//str_overwrite();
-				//printf("Here 2");
-				//fgets(option, 2000, stdin);
+				get_help();
 				
-				//printf("here 3");
-				str_trim_lf(msg, 2000);
-				//str_trim_lf(option, 2000);
-				sprintf(buffer, "%s",msg);//opcion
-				send(sockfd, buffer, strlen(buffer),0);
-				
-				//bzero(buffer, 2040);
-				/*const char delimitier[] = " ";
-				char *mess_2;
-				strtok(option,delimitier);
-				mess_2 = strtok(NULL,delimitier); //mensaje*/
-				sprintf(buffer, "%s",option); //usuario elegido
-				//printf("usuario %s\n", buffer);
-				//send(sockfd, buffer, strlen(buffer),0);
 				
 				
 			}else if(strcmp(msg, "change-status")==0){
