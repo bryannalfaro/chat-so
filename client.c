@@ -11,10 +11,24 @@
 #include<pthread.h>
 #include<arpa/inet.h>
 #include<json-c/json.h>
+#include<time.h>
 volatile sig_atomic_t flag = 0;
 int sockfd=0;
 char name[40];
 #define SIZE 40
+
+void show_menu(){
+	printf("\nWELCOME TO CHAT\n");
+	printf("Type the option, press enter and write: \n");
+	printf("show\n");
+	printf("broadcast\n");
+	printf("info_user\n");
+	printf("user_msg\n");
+	printf("exit\n");
+	printf("help\n");
+	printf("change-status\n");
+}
+
 void str_trim_lf(char* arr, int length){
 	int i=0;
 	for( i; i<length;i++){
@@ -47,12 +61,19 @@ void recv_msg(){
 			struct json_object *response;
 			parsed_json = json_tokener_parse(msg);
 			json_object_object_get_ex(parsed_json,"response",&response);
-
+			//printf("%s",json_object_get_string(response));
 			if(strcmp(json_object_get_string(response),"PUT_STATUS")==0){
 				struct json_object *code;
 				json_object_object_get_ex(parsed_json, "code", &code);
 				if(json_object_get_int(code) == 200){
 						printf("%s\n","Cambio de estado exitoso");
+					} 
+			}if(strcmp(json_object_get_string(response),"END_CONEX")==0){
+				struct json_object *code;
+				json_object_object_get_ex(parsed_json, "code", &code);
+				if(json_object_get_int(code) == 200){
+						printf("%s\n","FIN");
+						flag=1;
 					} 
 			}if(strcmp(json_object_get_string(response),"GET_USER")==0){
 				struct json_object *code;
@@ -76,6 +97,7 @@ void recv_msg(){
 			
 		}else if(receive==0){
 				//str_overwrite();
+				
 				flag=1;
 				break;
 			}
@@ -88,7 +110,7 @@ void recv_msg(){
 void get_help(){
 		
 		char description[3000];
-		sprintf(description, "Para utilizar el chat debes escribir la opcion que deseas (ejemplo: broadcast)\n Luego de esto debes presionar enter y escribir de acuerdo a tu opcion \n Si eliges show solamente lo debes colocar. \n Si eliges broadcast debes luego escribir tu mensaje. \n Si eliges info_user debes luego escribir el nombre del usuario que deseas. \n Si eliges user_msg debes enviar el mensaje privado de la siguiente manera <usuario>-<mensaje>\n");
+		sprintf(description, "Para utilizar el chat debes escribir la opcion que deseas (ejemplo: broadcast)\n Luego de esto debes presionar enter y escribir de acuerdo a tu opcion \n Si eliges show solamente lo debes colocar. \n Si eliges broadcast debes luego escribir tu mensaje. \n Si eliges info_user debes luego escribir el nombre del usuario que deseas. \n Si eliges user_msg debes enviar el mensaje privado de la siguiente manera <usuario> <mensaje>\n");
 		printf("%s",description);
 	}
 
@@ -102,7 +124,10 @@ void sendv_msg(){
 		str_trim_lf(msg, 2000);
 		
 		if(strcmp(msg, "exit")==0){
-				break;
+				char req[12] = "END_CONEX";
+				sprintf(buffer, "{'request': '%s'}",req);//opcion
+				send(sockfd, buffer, strlen(buffer),0);
+				
 			}else if(strcmp(msg, "show")==0){
 				
 				bzero(buffer, 2040);
@@ -247,16 +272,40 @@ int main(int argc, char *argv[]){
         perror("ERROR connecting");
         exit(1);
     }
-send(sockfd, name, 40, 0);
-printf("WELCOME\n");
-printf("Type the option, press enter and write: \n");
-printf("show\n");
-printf("broadcast\n");
-printf("info_user\n");
-printf("user_msg\n");
-printf("exit\n");
-printf("help\n");
-printf("change-status\n");
+
+char data[200]="";
+char timear[50];
+time_t connect_time = time(0); 
+sprintf(timear, "%d", connect_time);
+char description[200];
+sprintf(description, " '%s', ",timear);
+strcat(data,description);
+bzero(description, 200);
+sprintf(description, " '%s' ", name);
+strcat(data, description);
+//printf("%s", data);
+
+sprintf(buffer, "{'request': 'INIT_CONEX','body': [%s]}",data);//INIT_CONEX
+send(sockfd, buffer, sizeof(buffer), 0);
+bzero(buffer, 256);
+recv(sockfd, buffer, sizeof(buffer),0);
+//printf("%s",buffer);
+struct json_object *parsed_json;
+struct json_object *response;
+parsed_json = json_tokener_parse(buffer);
+json_object_object_get_ex(parsed_json,"response",&response);
+
+if(strcmp(json_object_get_string(response),"INIT_CONEX")==0){
+			struct json_object *code;
+			
+			json_object_object_get_ex(parsed_json,"code",&code);
+			if(json_object_get_int(code)==200){
+				show_menu();
+			}
+	}
+
+//if(recv(sockfd, buffer, sizeof(buffer),0);
+
 pthread_t send_msg;
 if(pthread_create(&send_msg, NULL ,(void *)sendv_msg,NULL)!=0){
 		printf("ERROR");
@@ -270,7 +319,7 @@ if(pthread_create(&recv2_msg, NULL ,(void *)recv_msg,NULL)!=0){
 
 while(1){
 		if(flag){
-				printf("ADIOS");
+				printf("ADIOS DEL CHAT \n");
 				break;
 			}
 	}
