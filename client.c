@@ -82,13 +82,24 @@ void recv_msg(){
 				if(json_object_get_int(code) == 200){
 						struct json_object *body;
 						json_object_object_get_ex(parsed_json, "body", &body);
+						
 						size_t num = json_object_array_length(body);
-						if(num>40){
+						//TODO : Recorrer para printear mejor
+						struct json_object *user = json_object_array_get_idx(body,0);
+						if(json_object_array_length(user)==2){
+							printf("ACTIVE USERS \n");
+							printf("%s\n",json_object_get_string(body));
+						}else{
+								printf("INFO ABOUT USER\n");
+								printf("%s\n",json_object_get_string(body));
+						}	
+						
+						//if(num>40){
 								//se trata de IP de un usuario
-								printf("Se obtuvo lo siguiente \n ip de usuario: %s\n",json_object_get_string(body));
-						}else{		//Se trata de un array
-								printf("Usuarios activos \n %s\n",json_object_get_string(body));
-						}
+								//printf("Se obtuvo lo siguiente \n ip de usuario: %s\n",json_object_get_string(body));
+						//}else{		//Se trata de un array
+								//printf("Usuarios activos \n %s\n",json_object_get_string(body));
+						//}
 						
 					} 
 			}

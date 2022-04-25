@@ -157,7 +157,7 @@ void show_connected(int uid){
 						if(clients[i]->uid != uid){	
 							//printf("im here");
 							
-                            sprintf(description, " '(%s) %s', ",clients[i]->status,clients[i]->name);
+                            sprintf(description, " ['%s','%s'], ",clients[i]->status,clients[i]->name);
 							strcat(arrayf, description);
 							bzero(description, 200);
 						}
@@ -209,6 +209,7 @@ void info_user(char *name, int uid){
 		int l=0;
 		int k = 0;
 		char description[200];
+ 		char arrayf[1000]="";
 		//printf("%s",name);
 
 		for(l; l<40; l++){
@@ -220,8 +221,10 @@ void info_user(char *name, int uid){
 							if(strcmp(clients[k]->name,name)==0){
 								//printf("hereeee");
 								bzero(description,200);
-                
-                                 sprintf(description, "{'response': 'GET_USER','code':200,'body':'%s'}",clients[k]->ip_user);
+                		 sprintf(description, "%s", clients[k]->ip_user,clients[k]->status);
+				 strcat(arrayf, description);
+				bzero(description, 200);
+                                 sprintf(description, "{'response': 'GET_USER','code':200,'body': ['%s','%s']}",clients[k]->ip_user,clients[k]->status);
                                  write(clients[l]->sockfd, description,strlen(description));
 								//sprintf(description, "Nombre: %s, Ip: %s, Estado: %s", clients[k]->name, clients[k]->ip_user, clients[k]->status);
 								//send(clients[l]->sockfd, description, strlen(description),0);
@@ -464,7 +467,7 @@ int main(int argc, char **argv){
     int option = 1;
     char status[10];
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("192.168.1.13"); //change according to machine
+    serv_addr.sin_addr.s_addr = inet_addr("192.168.1.11"); //change according to machine
     serv_addr.sin_port = htons(portno);
 	
 	signal(SIGPIPE, SIG_IGN);
