@@ -11,19 +11,26 @@
 #include<time.h>
 #include <json-c/json.h>
 
-static int uid = 1;
 static _Atomic unsigned int clients_count = 0; //permite evitar race conditions ya que es variable para todos los hilos
 //Estructura para el cliente
 typedef struct{
 	struct sockaddr_in address;
 	int sockfd;
-	int uid;
 	char name[40];
 	char ip_user[20];
 	char status[10];
 	time_t last_interaction;
 } client_t;
+
+typedef struct{
+	char message;
+	char from;
+	char deliver_at;
+	char to;
+} message;
+
 client_t *clients[40]; //Lista de clientes
+message *messages[200]; //Lista de clientes
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -49,12 +56,12 @@ void add_client(client_t *cliente){
 	pthread_mutex_unlock(&clients_mutex);
 }
 
-void remove_client(int id_cliente){
+void remove_client(char *id_cliente){
 	pthread_mutex_lock(&clients_mutex);
 	int j =0;
 	for(j ; j<40; j++){
 		if(clients[j]!=NULL){
-				if(clients[j]->uid == id_cliente){ //verificar que sea el id del cliente a  eliminar
+				if(clients[j]->name == id_cliente){ //verificar que sea el id del cliente a  eliminar
 				
 			clients[j] = NULL; // se elimina
 			break;
@@ -66,65 +73,108 @@ void remove_client(int id_cliente){
 	pthread_mutex_unlock(&clients_mutex);
 }
 
-void broadcast_message(char *message, int uid){
+void broadcast_message(char *message_b, char name){
 		pthread_mutex_lock(&clients_mutex);
-		int l=0;
+		// int l=0;
 		//time_t actualTime;
   		//struct tm * timeinfo;
 
   		//time ( &actualTime );
   		//timeinfo = localtime ( &actualTime );
-		for(l; l<40; l++){
-			//printf("%d",l);
-			if(clients[l]!=NULL){
-				//printf("si entre");
-			if(clients[l]->uid != uid){
-				//printf("here broadcast\n");
-				//printf("nombre broadcast %s\n",clients[l]->name);
-				char description[200];
-				sprintf(description, "(public) %s\n",message);
-				write(clients[l]->sockfd,description, strlen(description));
-				//sprintf("");
-				//break;
+
+		message *msg = (message*)malloc(sizeof(message));
+		msg->message = message_b;
+		msg->from = name;
+		msg->deliver_at = '24/04 01:03';
+		msg->to = 'all';
+		for(j ; j<200; j++){
+			if(messages[j]==NULL){				
+				messages[j] = msg;
+				break;
 			}
-	}
-			
-	}
+		}
+
+		// for(l; l<40; l++){
+		// 	printf("%d",l);
+		// 	if(clients[l]!=NULL){
+		// 		printf("si entre");
+		// 		if(clients[l]->uid != uid){
+		// 			printf("here broadcast\n");
+		// 			printf("nombre broadcast %s\n",clients[l]->name);
+		// 			char description[200];
+		// 			sprintf(description, "(public) %s\n",message_b);
+		// 			write(clients[l]->sockfd,description, strlen(description));
+		// 			sprintf("");
+		// 			break;
+		// 		}
+		// 	}		
+		// }
 		pthread_mutex_unlock(&clients_mutex);
 	}
 
-void message_user(char *message,char *receiver_user, int uid_sender){
+void message_user(char *message_u,char *receiver_user, char *name_sender){
 		pthread_mutex_lock(&clients_mutex);
-		int l=0;
-		int i = 0;
-		for(l; l<40; l++){
-			//printf("%d",l);
-		   if(clients[l]!=NULL){
-			if(clients[l]->uid == uid_sender){
-				for(i;i<40;i++){
-					if(strcmp(clients[i]->name,receiver_user)==0){
-						char description[200];
-						sprintf(description, "(private) (%s) %s: %s\n",clients[l]->status,clients[l]->name, message);
-						write(clients[i]->sockfd, description, strlen(description));
-						break;
-					}
-				}
-				
+		// int l=0;
+		// int i = 0;
+		message *msg = (message*)malloc(sizeof(message));
+		msg->message = message_u;
+		msg->from = name_sender;
+		msg->deliver_at = '24/04 01:03';
+		msg->to = receiver_user;
+		for(j ; j<200; j++){
+			if(messages[j]==NULL){				
+				messages[j] = msg;
+				break;
 			}
-		   }
+		}
+		// for(l; l<40; l++){
+		// 	//printf("%d",l);
+		//    if(clients[l]!=NULL){
+		// 	if(clients[l]->uid == uid_sender){
+		// 		for(i;i<40;i++){
+		// 			if(strcmp(clients[i]->name,receiver_user)==0){
+		// 				char description[200];
+		// 				sprintf(description, "(private) (%s) %s: %s\n",clients[l]->status,clients[l]->name, message);
+		// 				write(clients[i]->sockfd, description, strlen(description));
+		// 				break;
+		// 			}
+		// 		}
+				
+		// 	}
+		//    }
+			
+		// }
+		pthread_mutex_unlock(&clients_mutex);
+}
+
+void get_broadcast(char *message, char *client_name){
+	pthread_mutex_lock(&clients_mutex);
+		for(j ; j<200; j++){
 			
 		}
-		pthread_mutex_unlock(&clients_mutex);
-	}
+	pthread_mutex_unlock(&clients_mutex);
 
-void change_status(char *message,int uid_client){
+
+}
+
+void get_message_user(char *message, char *client_name){
+	pthread_mutex_lock(&clients_mutex);
+
+		for(j ; j<200; j++){
+
+		}
+	pthread_mutex_unlock(&clients_mutex);
+}
+
+
+void change_status(char *message, char *client_name){
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
 		int i = 0;
 		for(l; l<40; l++){
 			//printf("%d",l);
 		   if(clients[l]!=NULL){
-			if(clients[l]->uid == uid_client){
+			if(clients[l]->name == client_name){
 				bzero(clients[l]->status, strlen(clients[l]->status));
 				sprintf(clients[l]->status, "%s", message);
                 char description[200];
@@ -142,7 +192,7 @@ void change_status(char *message,int uid_client){
 
 
 
-void show_connected(int uid){
+void show_connected(char *client_name){
 		char users[40][200];
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
@@ -151,10 +201,10 @@ void show_connected(int uid){
         char arrayf[1000]="";
 		for(l; l<40; l++){
 			if(clients[l]!=NULL){
-			if(clients[l]->uid == uid){
+			if(clients[l]->name == client_name){
 				for(i; i<40; i++){
 					if(clients[i]!=NULL){
-						if(clients[i]->uid != uid){	
+						if(clients[i]->name != client_name){	
 							//printf("im here");
 							
                             sprintf(description, " ['%s','%s'], ",clients[i]->status,clients[i]->name);
@@ -204,7 +254,7 @@ void send_res(char * name){
 		pthread_mutex_unlock(&clients_mutex);
 	}
 
-void info_user(char *name, int uid){
+void info_user(char *name, char *client_name){
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
 		int k = 0;
@@ -215,7 +265,7 @@ void info_user(char *name, int uid){
 		for(l; l<40; l++){
 			//printf("%d",l);
 		   if(clients[l]!=NULL){
-			if(clients[l]->uid == uid){
+			if(clients[l]->name == client_name){
 				for(k; k<40; k++){
 						if(clients[k]!=NULL){
 							if(strcmp(clients[k]->name,name)==0){
@@ -333,23 +383,47 @@ void *handle_client(void *arg){
                     json_object_object_get_ex(parsed_json,"body",&body);
                     
                     if(strcmp(json_object_get_string(body), "all")==0){
-                            show_connected(client->uid);
+                            show_connected(client->name);
                     }else {
                         sprintf(debug, json_object_get_string(body),strlen(json_object_get_string(body)));
                       printf("%s",debug);
-                        info_user(json_object_get_string(body),client->uid);
+                        info_user(json_object_get_string(body),client->name);
                     }
 					bzero(buffer, 2000);
 
 				}
-				if(strcmp(buffer, "broadcast")==0){
+				if(strcmp(json_object_get_string(request), "POST_CHAT")==0){
 					int receive2 = recv(client->sockfd, msg_client, 2000,0);
 					bzero(buffer, 2000);
 					//printf("im here compare");
-					sprintf(buffer, "(%s) %s:%s\n", client->status,client->name,msg_client);
-					broadcast_message(buffer, client->uid);
+					// sprintf(buffer, "(%s) %s:%s\n", client->status,client->name,msg_client);
 					//str_trim_lf(buffer, strlen(buffer));
-					printf("%s\n", buffer);
+					// printf("%s\n", buffer);
+
+					struct json_object *body;
+                    json_object_object_get_ex(parsed_json,"body",&body);
+                    
+                    if(strcmp(json_object_get_string(body), "all")==0){
+						bzero(buffer, 2000);
+                        broadcast_message(buffer, client->name);
+                    }else {
+						// se separa por primer espacio
+						char *s1;
+						char *s2;
+						char *sp;
+
+						sp = strchr(msg_client, ' ');
+						s1 = strndup(msg_client, sp-msg_client);
+						s2 =  sp+1;
+
+						//const char delimitier[] = "-";
+						//char *mess_2;
+						//strtok(msg_client, delimitier);
+						//mess_2 = strtok(NULL, delimitier);
+						
+						bzero(buffer, 2000);
+						message_user(s2, s1, client->name);
+						}
 
 				}/*if(strcmp(buffer, "info_user")==0){
 					//int receive2 = recv(client->sockfd, msg_client, 2000,0);
@@ -384,7 +458,7 @@ void *handle_client(void *arg){
 					//sprintf(buffer, "hehe%s:%s\n", client->name,msg_client);
 					//printf("%s\n", buffer);
 					
-					message_user(s2, s1, client->uid);
+					message_user(s2, s1, client->name);
 					
 					//show_connected(client->uid);
 					//str_trim_lf(buffer, strlen(buffer));
@@ -398,11 +472,11 @@ void *handle_client(void *arg){
 					struct json_object *body;
                     json_object_object_get_ex(parsed_json,"body",&body);
                     if(json_object_get_int(body)==0){
-                            change_status("ACTIVO", client->uid);
+                            change_status("ACTIVO", client->name);
                     }else if(json_object_get_int(body)==1){
-                        change_status("OCUPADO", client->uid);
+                        change_status("OCUPADO", client->name);
                     }else if(json_object_get_int(body)==2){
-                        change_status("INACTIVO", client->uid);
+                        change_status("INACTIVO", client->name);
                     }
                     sprintf(buffer, "changing status %s:%d\n", client->name,json_object_get_int(body));
 					printf("%s",buffer);
@@ -441,7 +515,7 @@ void *handle_client(void *arg){
 		bzero(user_msg,2000);
 	}
 	close(client->sockfd);
-	remove_client(client->uid);
+	remove_client(client->name);
 	free(client);
 	clients_count--;
 	pthread_detach(pthread_self());
@@ -495,7 +569,6 @@ int main(int argc, char **argv){
 	client_t *client = (client_t*)malloc(sizeof(client_t));
 	client->address = cli_addr;
 	client->sockfd = newsockfd;
-	client->uid = uid++;
 	sprintf(client->ip_user, "%s",inet_ntoa(cli_addr.sin_addr));
 	sprintf(status, "ACTIVO");
 	sprintf(client->status, "%s", status); 
