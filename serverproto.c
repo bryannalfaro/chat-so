@@ -30,7 +30,7 @@ typedef struct{
 } message;
 
 client_t *clients[40]; //Lista de clientes
-message *messages[200]; //Lista de clientes
+message *messages[200]; //Lista de mensajes
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -85,8 +85,9 @@ void broadcast_message(char *message_b, char name){
 		message *msg = (message*)malloc(sizeof(message));
 		msg->message = message_b;
 		msg->from = name;
-		msg->deliver_at = '24/04 01:03';
+		msg->deliver_at = "24/04 01:03";
 		msg->to = 'all';
+		int j =0;
 		for(j ; j<200; j++){
 			if(messages[j]==NULL){				
 				messages[j] = msg;
@@ -119,8 +120,9 @@ void message_user(char *message_u,char *receiver_user, char *name_sender){
 		message *msg = (message*)malloc(sizeof(message));
 		msg->message = message_u;
 		msg->from = name_sender;
-		msg->deliver_at = '24/04 01:03';
+		msg->deliver_at = "24/04 01:03";
 		msg->to = receiver_user;
+		int j =0;
 		for(j ; j<200; j++){
 			if(messages[j]==NULL){				
 				messages[j] = msg;
@@ -149,6 +151,7 @@ void message_user(char *message_u,char *receiver_user, char *name_sender){
 
 void get_broadcast(char *message, char *client_name){
 	pthread_mutex_lock(&clients_mutex);
+		int j =0;
 		for(j ; j<200; j++){
 			
 		}
@@ -159,7 +162,7 @@ void get_broadcast(char *message, char *client_name){
 
 void get_message_user(char *message, char *client_name){
 	pthread_mutex_lock(&clients_mutex);
-
+		int j =0;
 		for(j ; j<200; j++){
 
 		}
@@ -199,6 +202,7 @@ void show_connected(char *client_name){
 		int i = 0;
         char description[200];
         char arrayf[1000]="";
+
 		for(l; l<40; l++){
 			if(clients[l]!=NULL){
 			if(clients[l]->name == client_name){
