@@ -49,16 +49,12 @@ void add_client(client_t *cliente){
 	int j =0;
 	int flag = 0;
 	for(j; j<40; ++j){
-		if(clients[j] == NULL || clients[j]->name == cliente->name){ //verificar que ese espacio este vacio
+		if(clients[j] == NULL){ //verificar que ese espacio este vacio
 			flag = 1;
 			clients[j] = cliente; //agregarlo al queue
 			break;
 		}
-		if (flag == 0){
-			char description[200];
-			sprintf(description, "{'response': 'INIT_CONEX','code':101}");
-			write(clients[j]->sockfd, description,strlen(description));
-		}
+		
 	}
 
 
@@ -391,6 +387,24 @@ void info_user(char *name, char *client_name){
 		pthread_mutex_unlock(&clients_mutex);
 	}
 
+int verify_name(char * name){
+		pthread_mutex_lock(&clients_mutex);
+		int valid = 1;
+		int j =0 ;
+		for(j;j<40;j++){
+				if(clients[j]!=NULL){
+					if(strcmp(clients[j]->name,name)==0){
+						valid = 0;
+
+						break;
+					}
+				}
+		}
+	pthread_mutex_unlock(&clients_mutex);
+	return valid;
+	
+	}
+
 void *handle_client(void *arg){
 	char buffer[2000];
 	char option[2000];
@@ -399,6 +413,7 @@ void *handle_client(void *arg){
 	char name[40];
         char debug[20];
 	int active_user = 0;
+	int validuser2 = 0;
 	clients_count++;
 
 	client_t *client = (client_t*)arg;
@@ -430,8 +445,19 @@ void *handle_client(void *arg){
 					}
 					else{
 						strcpy(client->name, json_object_get_string(data_body));
-						sprintf(buffer, "(%s) %s se ha unido\n",client->status, client->name);
-						printf("%s", buffer);
+						int valid1 = verify_name(client->name);
+						printf("%d",valid1);
+						if(valid1){
+							add_client(client);
+							sprintf(buffer, "(%s) %s se ha unido\n",client->status, client->name);
+							printf("%s", buffer);
+							write(client->sockfd,"{'response': 'INIT_CONEX','code':200}",44);
+							validuser2=1;
+						}else{
+							write(client->sockfd,"{'response': 'INIT_CONEX','code':101}",44);
+							 validuser2= 0 ;
+						}
+						
 						
 						//broadcast_message(buffer, client->uid); DESCOMENTAR CUANDO SE ARREGLE
 					}
@@ -439,13 +465,16 @@ void *handle_client(void *arg){
   
         		}
         	}
-        write(client->sockfd,"{'response': 'INIT_CONEX','code':200}",44);
+        
         
 	bzero(buffer, 2000);
 	while(1){
 		//bzero(buffer, 2000);
 		
 		if(active_user){
+			break;
+		}
+		if(validuser2==0){
 			break;
 		}
 		int receive = recv(client->sockfd, buffer, 2000, 0);
@@ -559,12 +588,21 @@ void *handle_client(void *arg){
 		bzero(option, 2000);
 		bzero(user_msg,2000);
 	}
-	close(client->sockfd);
-	remove_client(client->name);
-	free(client);
-	clients_count--;
-	pthread_detach(pthread_self());
-	return NULL;
+	if(active_user){
+		close(client->sockfd);
+		remove_client(client->name);
+		free(client);
+		clients_count--;
+		pthread_detach(pthread_self());
+		return NULL;
+	}if(validuser2==0){
+		close(client->sockfd);
+		free(client);
+		clients_count--;
+		pthread_detach(pthread_self());
+		return NULL;
+	}
+	
 }
 
 int main(int argc, char **argv){
@@ -614,7 +652,7 @@ int main(int argc, char **argv){
 	sprintf(status, "0");
 	sprintf(client->status, "%s", status); 
 	// sprintf(client->name, "%s", ??); 
-	add_client(client);
+	
 	pthread_create(&tid, NULL, &handle_client, (void*)client); //Hilo del cliente
 	//sleep(1);        
 

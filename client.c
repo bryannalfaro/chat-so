@@ -431,6 +431,9 @@ if(strcmp(json_object_get_string(response),"INIT_CONEX")==0){
 			json_object_object_get_ex(parsed_json,"code",&code);
 			if(json_object_get_int(code)==200){
 				show_menu();
+			}else if (json_object_get_int(code)==101){
+				printf("Usuario ya registrado\n");
+				exit(1);
 			}
 	}
 
