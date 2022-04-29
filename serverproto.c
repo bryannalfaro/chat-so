@@ -146,24 +146,39 @@ void message_user(struct json_object *body, char *name){
 		 for(l; l<40; l++){
 			//printf("%d",l);
 		    if(clients[l]!=NULL){
-				if(clients[l]->name == name){
-					char description[200];
-					sprintf(description, "{'response': 'POST_CHAT','code':200}");
-					write(clients[l]->sockfd, description,strlen(description));
-				}
+				
 				if(strcmp(clients[l]->name,msg->to)==0){
 					flag = 1;
 					char description[200];
 					sprintf(description, "{'response': 'NEW_MESSAGE','body': %s }",json_object_get_string(body));
-					write(clients[l]->sockfd, description,strlen(description));
+					if(flag){
+						write(clients[l]->sockfd, description,strlen(description));
+						break;
+					}
+					
 				}
 		 	}
+			
 		}
-
-		if (flag == 0){
-			char description[200];
-			sprintf(description, "{'response': 'POST_CHAT','code':102}");
-			write(clients[l]->sockfd, description,strlen(description));
+		if (flag == 0 || flag==1){
+			l=0;
+			for(l; l<40;l++){
+				if(clients[l]->name==name){
+					if(flag==0){
+							char description[200];
+							sprintf(description, "{'response': 'POST_CHAT','code':102}");
+							write(clients[l]->sockfd, description,strlen(description));
+					}else{
+						char description[200];
+						sprintf(description, "{'response': 'POST_CHAT','code':200}");
+						write(clients[l]->sockfd, description,strlen(description));
+					
+					
+					}
+				}
+			
+			
+			}
 		}
 		 
 		pthread_mutex_unlock(&clients_mutex);
@@ -171,7 +186,7 @@ void message_user(struct json_object *body, char *name){
 
 void get_broadcast_message(char *client_name){
 	pthread_mutex_lock(&clients_mutex);
-		char description[200];
+	char description[200];
         char arrayf[1000]="";
 		int l=0;
 		int j =0;
@@ -179,14 +194,29 @@ void get_broadcast_message(char *client_name){
 			if(clients[l]!=NULL){
 				if(clients[l]->name == client_name){
 					for(j ; j<200; j++){
-						sprintf(description, " ['%s','%s', '%s'], ",messages[j]->message, messages[j]->from, messages[j]->deliver_at);
-						strcat(arrayf, description);
-						bzero(description, 200);
+						//printf("%d\n",j);
+						if(messages[j]!=NULL){ //SE COMPRUEBA QUE NO SEA NULO
+							if (strcmp(messages[j]->to, "all")==0){
+									sprintf(description, " ['%s','%s', '%s'], ",messages[j]->message, messages[j]->from, messages[j]->deliver_at);
+									strcat(arrayf, description);
+									bzero(description, 200);
+							}
+							
+							
+								
+														
+						
+							
+						}
+						
 					}
+					sprintf(description, "{'response': 'GET_CHAT','code':200,'body':[%s]}",arrayf);
+					write(clients[l]->sockfd, description,strlen(description));	
+					
+					
 				}
 			}
-			sprintf(description, "{'response': 'GET_CHAT','code':200,'body':[%s]}",arrayf);
-			write(clients[l]->sockfd, description,strlen(description));
+			
 		}
 		
 	pthread_mutex_unlock(&clients_mutex);
@@ -197,24 +227,31 @@ void get_broadcast_message(char *client_name){
 void get_message_user(char *client_name){
 	pthread_mutex_lock(&clients_mutex);
 		char description[200];
+	//printf("si%s\n",client_name);
         char arrayf[1000]="";
 		int l=0;
 		int j =0;
 		for(l; l<40; l++){
 			if(clients[l]!=NULL){
-				if(clients[l]->name == client_name){
+				if(strcmp(clients[l]->name,client_name)==0){
 					for(j ; j<200; j++){
-						if (messages[j]->to==client_name){
-							sprintf(description, " ['%s','%s', '%s'], ",messages[j]->message, messages[j]->from, messages[j]->deliver_at);
-							strcat(arrayf, description);
-							bzero(description, 200);
+						if(messages[j]!=NULL){
+								if (strcmp(messages[j]->to,client_name)==0){
+								printf("si %s, %s\n",messages[j]->to,client_name);
+								sprintf(description, " ['%s','%s', '%s'], ",messages[j]->message, messages[j]->from, messages[j]->deliver_at);
+								strcat(arrayf, description);
+								bzero(description, 200);
+								}
 						}
+						
 					}
+					sprintf(description, "{'response': 'GET_CHAT','code':200,'body':[%s]}",arrayf);
+					write(clients[l]->sockfd, description,strlen(description));
+					
 				}
 			}
 		}
-		sprintf(description, "{'response': 'GET_CHAT','code':200,'body':[%s]}",arrayf);
-		write(clients[l]->sockfd, description,strlen(description));
+		
 	pthread_mutex_unlock(&clients_mutex);
 }
 
@@ -267,17 +304,20 @@ void show_connected(char *client_name){
 							}  
 						}     
 					}
-					sprintf(description, "{'response': 'GET_USER','code':200,'body':[%s]}",arrayf);
+					if(flag){
+						sprintf(description, "{'response': 'GET_USER','code':200,'body':[%s]}",arrayf);
+						write(clients[l]->sockfd, description,strlen(description));
+						break;
+					}if (flag == 0){
+					char description[200];
+					sprintf(description, "{'response': 'GET_USER','code':103}");
 					write(clients[l]->sockfd, description,strlen(description));
-					break;	
+					}
+						
 				}
 			}
 		}
-		if (flag == 0){
-			char description[200];
-			sprintf(description, "{'response': 'GET_USER','code':103}");
-			write(clients[l]->sockfd, description,strlen(description));
-		}
+		
 		pthread_mutex_unlock(&clients_mutex);
 	}
 
@@ -322,23 +362,28 @@ void info_user(char *name, char *client_name){
 							if(strcmp(clients[k]->name, name)==0){
 								flag = 1;
 								bzero(description,200);
-								sprintf(description, "%s", clients[k]->ip_user,clients[k]->status);
+								//sprintf(description, "%s", clients[k]->ip_user,clients[k]->status);
 								strcat(arrayf, description);
 								bzero(description, 200);
-								printf(description, "{'response': 'GET_USER','code':200,'body': ['%s','%s']}",clients[k]->ip_user,clients[k]->status);
-								write(clients[l]->sockfd, description,strlen(description));
-								break;
+								sprintf(description, "{'response': 'GET_USER','code':200,'body': ['%s','%s']}",clients[k]->ip_user,clients[k]->status);
+								if(flag){
+									write(clients[l]->sockfd, description,strlen(description));
+									break;
+								}
+								
 							}  	
 						}
+					}
+					if (flag == 0){
+							char description[200];
+							sprintf(description, "{'response': 'GET_USER','code':102}");
+							write(clients[l]->sockfd, description,strlen(description));
+							break;
 					}
 					// if(strlen(description)==0){
 					// 	write(clients[l]->sockfd, "No existe", 9);
 					// }
-					if (flag == 0){
-						char description[200];
-						sprintf(description, "{'response': 'GET_USER','code':102}");
-						write(clients[l]->sockfd, description,strlen(description));
-					}
+					
 				}
 			}
 		}
@@ -428,6 +473,19 @@ void *handle_client(void *arg){
                     }
 					bzero(buffer, 2000);
 
+		}if(strcmp(json_object_get_string(request), "GET_CHAT")==0){//OBTENER LISTA DE MENSAJES GLOBALES Y DE USUARIO
+                    struct json_object *body;
+		    char private_name[40];
+                    json_object_object_get_ex(parsed_json,"body",&body);
+                    
+                    if(strcmp(json_object_get_string(body), "all")==0){
+                            get_broadcast_message(client->name);
+                    }else {
+                        sprintf(private_name, "%s", json_object_get_string(body));
+                        get_message_user(private_name);
+                    }
+					bzero(buffer, 2000);
+
 		}
 		if(strcmp(json_object_get_string(request), "POST_CHAT")==0){
 			//int receive2 = recv(client->sockfd, msg_client, 2000,0);
@@ -448,19 +506,6 @@ void *handle_client(void *arg){
 				//USER_MSG
 				message_user(body, client->name);
 			      }
-
-		}if(strcmp(json_object_get_string(request), "GET_CHAT")==0){
-			bzero(buffer, 2000);
-			    struct json_object *body;
-			    json_object_object_get_ex(parsed_json,"body",&body);
-			    
-			    if(strcmp(json_object_get_string(json_object_array_get_idx(body, 3)),"all")==0){
-				//BROADCAST_MSG
-				get_broadcast_message(client->name);
-			    }else {
-				//USER_MSG
-				get_message_user(client->name);
-			    }
 
 		}
 

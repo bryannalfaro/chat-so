@@ -57,15 +57,29 @@ void recv_msg(){
 		bzero(msg, 2000);
 		int receive= 0;
 		receive = recv(sockfd,msg,2000,0);
+		int flag_code=0;
 
 		if(receive > 0){
+			struct json_object *code = 200;
 			struct json_object *parsed_json;
-			struct json_object *response;
-			
 			parsed_json = json_tokener_parse(msg);
+			char search[]="code";
+			char *ptr = strstr(msg, search); //TODO Verificar si asi o pasarle code a response de NEW MESSAGE
+			if(ptr !=NULL){
+				json_object_object_get_ex(parsed_json,"code",&code);
+				if(json_object_get_int(code)==200){flag_code=1;}
+			}
+			struct json_object *response;
+			json_object_object_get_ex(parsed_json,"response",&response);
+			if(strcmp(json_object_get_string(response),"NEW_MESSAGE")==0){flag_code=1;}
+			
+			if(flag_code){
+				
+			
+			
 			
 			//printf("%d\n",json_object_get_int(json_object_object_get_ex(parsed_json,"response",&response)));
-			json_object_object_get_ex(parsed_json,"response",&response);
+			
 			//printf("%s",json_object_get_string(response));
 			if(strcmp(json_object_get_string(response),"PUT_STATUS")==0){
 				struct json_object *code;
@@ -87,6 +101,22 @@ void recv_msg(){
 						printf("%s\n","FIN");
 						flag=1;
 					} 
+			}if(strcmp(json_object_get_string(response),"GET_CHAT")==0){ //GET CHAT LISTA DE MENSAJES
+				struct json_object *body;
+				json_object_object_get_ex(parsed_json, "body", &body);
+				size_t n_users = json_object_array_length(body);
+				size_t i;
+				char state[30];
+				struct json_object *user_info;
+				if(n_users==0){
+					printf("SIN MENSAJES\n");
+				}
+				for(i=0; i< n_users; i++){
+					user_info = json_object_array_get_idx(body, i);
+					
+					printf("(%s): %s - %s\n", json_object_get_string(json_object_array_get_idx(user_info, 1)), json_object_get_string(json_object_array_get_idx(user_info, 0)), json_object_get_string(json_object_array_get_idx(user_info, 2)));
+				}
+				
 			}if(strcmp(json_object_get_string(response),"NEW_MESSAGE")==0){
 				struct json_object *body;
 				json_object_object_get_ex(parsed_json, "body", &body);
@@ -107,7 +137,7 @@ void recv_msg(){
 						
 						size_t num = json_object_array_length(body);
 						//TODO : Recorrer para printear mejor y parsear los 0 ,  1 , 2 a Activo , ocupado e inactiva
-						struct json_object *user = json_object_array_get_idx(body,0); //TODO problema aca cuando no viene nada
+						struct json_object *user = json_object_array_get_idx(body,0);
 						if(json_object_array_length(user)==2){
 							printf("ACTIVE USERS \n");
 							size_t n_users = json_object_array_length(body);
@@ -154,6 +184,18 @@ void recv_msg(){
 			}
 
 			str_overwrite();
+			}
+			else if(json_object_get_int(code)==101){
+				printf("Usuario ya registrado\n");
+				str_overwrite();
+			}else if(json_object_get_int(code)==102){
+				printf("Usuario no conectado\n");
+				str_overwrite();
+			}else if(json_object_get_int(code)==103){
+				printf("No hay usuarios conectados\n");
+				str_overwrite();
+			}
+			
 			
 		}else if(receive==0){
 				//str_overwrite();
@@ -197,7 +239,24 @@ void sendv_msg(){
 			
 				send(sockfd, buffer, strlen(buffer),0);
 				
+			}else if(strcmp(msg, "get-global")==0){
+				
+				bzero(buffer, 2040);
+				char req[12] = "GET_CHAT";
+				sprintf(buffer, "{'request': '%s','body': 'all'}",req);//opcion
+			
+				send(sockfd, buffer, strlen(buffer),0);
+				
+			}else if(strcmp(msg, "get-private")==0){
+				
+				bzero(buffer, 2040);
+				char req[12] = "GET_CHAT";
+				sprintf(buffer, "{'request': '%s','body': '%s'}",req,name);//opcion
+			
+				send(sockfd, buffer, strlen(buffer),0);
+				
 			}
+			
 			else if(strcmp(msg, "broadcast")==0){
 				bzero(buffer, 2040);
 				
