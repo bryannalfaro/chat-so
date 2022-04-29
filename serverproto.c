@@ -47,12 +47,21 @@ void str_trim_lf(char* arr, int length){
 void add_client(client_t *cliente){
 	pthread_mutex_lock(&clients_mutex);
 	int j =0;
+	int flag = 0;
 	for(j; j<40; ++j){
 		if(clients[j] == NULL || clients[j]->name == cliente->name){ //verificar que ese espacio este vacio
+			flag = 1;
 			clients[j] = cliente; //agregarlo al queue
 			break;
 		}
+		if (flag == 0){
+			char description[200];
+			sprintf(description, "{'response': 'INIT_CONEX','code':101}");
+			write(clients[j]->sockfd, description,strlen(description));
+		}
 	}
+
+
 	pthread_mutex_unlock(&clients_mutex);
 }
 
@@ -119,6 +128,7 @@ void broadcast_message(struct json_object *body, char *name){
 void message_user(struct json_object *body, char *name){
 		pthread_mutex_lock(&clients_mutex);
 		 int l=0;
+		 int flag = 0;
 		// int i = 0;
 		message *msg = (message*)malloc(sizeof(message));
 		sprintf(msg->message, "%s", json_object_get_string(json_object_array_get_idx(body, 0)));
@@ -136,41 +146,75 @@ void message_user(struct json_object *body, char *name){
 		 for(l; l<40; l++){
 			//printf("%d",l);
 		    if(clients[l]!=NULL){
-			if(clients[l]->name == name){
-				char description[200];
-				 sprintf(description, "{'response': 'POST_CHAT','code':200}");
-				write(clients[l]->sockfd, description,strlen(description));
-}
-			if(strcmp(clients[l]->name,msg->to)==0){
-					
+				if(clients[l]->name == name){
+					char description[200];
+					sprintf(description, "{'response': 'POST_CHAT','code':200}");
+					write(clients[l]->sockfd, description,strlen(description));
+				}
+				if(strcmp(clients[l]->name,msg->to)==0){
+					flag = 1;
 					char description[200];
 					sprintf(description, "{'response': 'NEW_MESSAGE','body': %s }",json_object_get_string(body));
 					write(clients[l]->sockfd, description,strlen(description));
 				}
 		 	}
-		    }
-			
+		}
+
+		if (flag == 0){
+			char description[200];
+			sprintf(description, "{'response': 'POST_CHAT','code':102}");
+			write(clients[l]->sockfd, description,strlen(description));
+		}
 		 
 		pthread_mutex_unlock(&clients_mutex);
 }
 
-void get_broadcast(char *message, char *client_name){
+void get_broadcast_message(char *client_name){
 	pthread_mutex_lock(&clients_mutex);
+		char description[200];
+        char arrayf[1000]="";
+		int l=0;
 		int j =0;
-		for(j ; j<200; j++){
-			
+		for(l; l<40; l++){
+			if(clients[l]!=NULL){
+				if(clients[l]->name == client_name){
+					for(j ; j<200; j++){
+						sprintf(description, " ['%s','%s', '%s'], ",messages[j]->message, messages[j]->from, messages[j]->deliver_at);
+						strcat(arrayf, description);
+						bzero(description, 200);
+					}
+				}
+			}
+			sprintf(description, "{'response': 'GET_CHAT','code':200,'body':[%s]}",arrayf);
+			write(clients[l]->sockfd, description,strlen(description));
 		}
+		
 	pthread_mutex_unlock(&clients_mutex);
 
 
 }
 
-void get_message_user(char *message, char *client_name){
+void get_message_user(char *client_name){
 	pthread_mutex_lock(&clients_mutex);
+		char description[200];
+        char arrayf[1000]="";
+		int l=0;
 		int j =0;
-		for(j ; j<200; j++){
-
+		for(l; l<40; l++){
+			if(clients[l]!=NULL){
+				if(clients[l]->name == client_name){
+					for(j ; j<200; j++){
+						if (messages[j]->to==client_name){
+							sprintf(description, " ['%s','%s', '%s'], ",messages[j]->message, messages[j]->from, messages[j]->deliver_at);
+							strcat(arrayf, description);
+							bzero(description, 200);
+						}
+					}
+				}
+			}
 		}
+		sprintf(description, "{'response': 'GET_CHAT','code':200,'body':[%s]}",arrayf);
+		write(clients[l]->sockfd, description,strlen(description));
 	pthread_mutex_unlock(&clients_mutex);
 }
 
@@ -206,33 +250,33 @@ void show_connected(char *client_name){
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
 		int i = 0;
+		int flag = 0;
 		char description[200];
 		char arrayf[1000]="";
 
 		for(l; l<40; l++){
 			if(clients[l]!=NULL){
-			if(clients[l]->name == client_name){
-				for(i; i<40; i++){
-					if(clients[i]!=NULL){
-						if(clients[i]->name != client_name){	
-							//printf("im here");
-							
-                        				    sprintf(description, " ['%s','%s'], ",clients[i]->status,clients[i]->name);
-							    strcat(arrayf, description);
-							    bzero(description, 200);
-						}  
-						
+				if(clients[l]->name == client_name){
+					for(i; i<40; i++){
+						if(clients[i]!=NULL){
+							if(clients[i]->name != client_name){
+								flag = 1;	
+								sprintf(description, " ['%s','%s'], ",clients[i]->status,clients[i]->name);
+								strcat(arrayf, description);
+								bzero(description, 200);
+							}  
+						}     
 					}
-                    
-                    		}
-				sprintf(description, "{'response': 'GET_USER','code':200,'body':[%s]}",arrayf);
-				write(clients[l]->sockfd, description,strlen(description));
-				break;
-				
-				
+					sprintf(description, "{'response': 'GET_USER','code':200,'body':[%s]}",arrayf);
+					write(clients[l]->sockfd, description,strlen(description));
+					break;	
+				}
 			}
 		}
-			
+		if (flag == 0){
+			char description[200];
+			sprintf(description, "{'response': 'GET_USER','code':103}");
+			write(clients[l]->sockfd, description,strlen(description));
 		}
 		pthread_mutex_unlock(&clients_mutex);
 	}
@@ -265,38 +309,38 @@ void info_user(char *name, char *client_name){
 		pthread_mutex_lock(&clients_mutex);
 		int l=0;
 		int k = 0;
+		int flag = 0;
 		char description[200];
  		char arrayf[1000]="";
 		//printf("%s",name);
 
 		for(l; l<40; l++){
-			//printf("%d",l);
-		   if(clients[l]!=NULL){
-			if(clients[l]->name == client_name){
-				for(k; k<40; k++){
+			if(clients[l]!=NULL){
+				if(clients[l]->name == client_name){
+					for(k; k<40; k++){
 						if(clients[k]!=NULL){
-							if(strcmp(clients[k]->name,name)==0){
-								//printf("hereeee");
+							if(strcmp(clients[k]->name, name)==0){
+								flag = 1;
 								bzero(description,200);
-								 sprintf(description, "%s", clients[k]->ip_user,clients[k]->status);
-								 strcat(arrayf, description);
+								sprintf(description, "%s", clients[k]->ip_user,clients[k]->status);
+								strcat(arrayf, description);
 								bzero(description, 200);
-								 sprintf(description, "{'response': 'GET_USER','code':200,'body': ['%s','%s']}",clients[k]->ip_user,clients[k]->status);
-								 write(clients[l]->sockfd, description,strlen(description));
-								
-                              						  break;
-								}  
-								
+								printf(description, "{'response': 'GET_USER','code':200,'body': ['%s','%s']}",clients[k]->ip_user,clients[k]->status);
+								write(clients[l]->sockfd, description,strlen(description));
+								break;
+							}  	
 						}
+					}
+					// if(strlen(description)==0){
+					// 	write(clients[l]->sockfd, "No existe", 9);
+					// }
+					if (flag == 0){
+						char description[200];
+						sprintf(description, "{'response': 'GET_USER','code':102}");
+						write(clients[l]->sockfd, description,strlen(description));
+					}
 				}
-				if(strlen(description)==0){
-						write(clients[l]->sockfd, "No existe", 9);
-				}
-				
 			}
-			
-		   }
-			
 		}
 		
 		pthread_mutex_unlock(&clients_mutex);
@@ -405,16 +449,21 @@ void *handle_client(void *arg){
 				message_user(body, client->name);
 			      }
 
-		}/*if(strcmp(buffer, "info_user")==0){
-					//int receive2 = recv(client->sockfd, msg_client, 2000,0);
-					//bzero(buffer, 2000);
-					//printf("im here compare");
-					//sprintf(buffer, "%s:%s\n", client->name,msg_client);
-					//info_user(msg_client,client->uid);
-					//str_trim_lf(buffer, strlen(buffer));
-					//printf("%s\n", buffer);
+		}if(strcmp(json_object_get_string(request), "GET_CHAT")==0){
+			bzero(buffer, 2000);
+			    struct json_object *body;
+			    json_object_object_get_ex(parsed_json,"body",&body);
+			    
+			    if(strcmp(json_object_get_string(json_object_array_get_idx(body, 3)),"all")==0){
+				//BROADCAST_MSG
+				get_broadcast_message(client->name);
+			    }else {
+				//USER_MSG
+				get_message_user(client->name);
+			    }
 
-				}*/
+		}
+
 		if(strcmp(json_object_get_string(request), "PUT_STATUS")==0){
 				bzero(msg_client,2000);
 
@@ -519,6 +568,7 @@ int main(int argc, char **argv){
 	sprintf(client->ip_user, "%s",inet_ntoa(cli_addr.sin_addr));
 	sprintf(status, "0");
 	sprintf(client->status, "%s", status); 
+	// sprintf(client->name, "%s", ??); 
 	add_client(client);
 	pthread_create(&tid, NULL, &handle_client, (void*)client); //Hilo del cliente
 	//sleep(1);        
