@@ -75,12 +75,6 @@ void recv_msg(){
 			
 			if(flag_code){
 				
-			
-			
-			
-			//printf("%d\n",json_object_get_int(json_object_object_get_ex(parsed_json,"response",&response)));
-			
-			//printf("%s",json_object_get_string(response));
 			if(strcmp(json_object_get_string(response),"PUT_STATUS")==0){
 				struct json_object *code;
 				json_object_object_get_ex(parsed_json, "code", &code);
@@ -136,7 +130,7 @@ void recv_msg(){
 						json_object_object_get_ex(parsed_json, "body", &body);
 						
 						size_t num = json_object_array_length(body);
-						//TODO : Recorrer para printear mejor y parsear los 0 ,  1 , 2 a Activo , ocupado e inactiva
+			
 						struct json_object *user = json_object_array_get_idx(body,0);
 						if(json_object_array_length(user)==2){
 							printf("ACTIVE USERS \n");
@@ -172,13 +166,6 @@ void recv_msg(){
 									}
 								printf("ip: %s, estado: %s\n",json_object_get_string(json_object_array_get_idx(body, 0)),state);
 						}	
-						
-						//if(num>40){
-								//se trata de IP de un usuario
-								//printf("Se obtuvo lo siguiente \n ip de usuario: %s\n",json_object_get_string(body));
-						//}else{		//Se trata de un array
-								//printf("Usuarios activos \n %s\n",json_object_get_string(body));
-						//}
 						
 					} 
 			}
@@ -267,7 +254,15 @@ void sendv_msg(){
 				str_trim_lf(msg, 2000);
 				str_trim_lf(option, 2000);
 				char req[12] = "POST_CHAT";
-				sprintf(buffer, "{'request': '%s','body': ['%s','%s','22:59','all']}",req,option,name);//opcion
+
+				char delivered_at[8];
+				time_t deliver;
+				struct tm *timestruct;
+				deliver = time(NULL);
+				timestruct = localtime(&deliver);
+				sprintf(delivered_at, "%d:%d", timestruct->tm_hour,timestruct->tm_min);
+				
+				sprintf(buffer, "{'request': '%s','body': ['%s','%s','%s','all']}",req,option,name,delivered_at);//opcion
 				
 				send(sockfd, buffer, strlen(buffer),0);
 				bzero(buffer, 2040);
@@ -308,7 +303,13 @@ void sendv_msg(){
 				sp = strchr(option, ' ');
 				s1 = strndup(option, sp-option);
 				s2 =  sp+1;
-				sprintf(buffer, "{'request': '%s','body': ['%s','%s','22:59','%s']}",req,s2, name, s1);//opcion
+				char delivered_at[8];
+				time_t deliver;
+				struct tm *timestruct;
+				deliver = time(NULL);
+				timestruct = localtime(&deliver);
+				sprintf(delivered_at, "%d:%d", timestruct->tm_hour, timestruct->tm_min);
+				sprintf(buffer, "{'request': '%s','body': ['%s','%s','%s','%s']}",req,s2, name, delivered_at, s1);//opcion
 				send(sockfd, buffer, strlen(buffer),0);
 				bzero(buffer, 2040);
 				
@@ -388,10 +389,10 @@ int main(int argc, char *argv[]){
     }
 	strcpy(name,argv[3]);
 	str_trim_lf(name, strlen(name));
-	if(strlen(name)<2 || strlen(name) > 39){
+	/*if(strlen(name)<2 || strlen(name) > 39){
 		printf("name not correct");
 		exit(1);
-	}
+	}*/ //TODO SE IGNORO PARA VALIDAR DESDE EL SERVIDOR
     
 
     serv_addr.sin_family = AF_INET;
@@ -434,6 +435,9 @@ if(strcmp(json_object_get_string(response),"INIT_CONEX")==0){
 			}else if (json_object_get_int(code)==101){
 				printf("Usuario ya registrado\n");
 				exit(1);
+			}else if (json_object_get_int(code)==105){
+				printf("Error al ingresar dato\n");
+				exit(1);
 			}
 	}
 
@@ -456,13 +460,7 @@ while(1){
 				break;
 			}
 	}
-    /*bzero(buffer, 256);
-    n = read(sockfd, buffer, 255);
-    if(n < 0){
-        perror("ERROR reading from socket");
-        exit(1);
-    }
-    printf("%s\n", buffer);*/
+
     close(sockfd);
     return 0;
 

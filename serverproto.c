@@ -22,6 +22,7 @@ typedef struct{
 	time_t last_interaction;
 } client_t;
 
+//Estructura para mensaje
 typedef struct{
 	char message[200];
 	char from[200];
@@ -38,10 +39,10 @@ void str_trim_lf(char* arr, int length){
 	int i=0;
 	for( i; i<length;i++){
 			if(arr[i] == '\n'){
-			arr[i] == '\0';
-			break;
-		}
-		}
+				arr[i] == '\0';
+				break;
+			}
+	}
 }
 
 void add_client(client_t *cliente){
@@ -54,9 +55,7 @@ void add_client(client_t *cliente){
 			clients[j] = cliente; //agregarlo al queue
 			break;
 		}
-		
 	}
-
 
 	pthread_mutex_unlock(&clients_mutex);
 }
@@ -66,7 +65,7 @@ void remove_client(char *id_cliente){
 	int j =0;
 	for(j ; j<40; j++){
 		if(clients[j]!=NULL){
-				if(clients[j]->name == id_cliente){ //verificar que sea el id del cliente a  eliminar
+				if(clients[j]->name == id_cliente){ //verificar que sea el id (nombre) del cliente a  eliminar
 				
 			clients[j] = NULL; // se elimina
 			break;
@@ -104,12 +103,12 @@ void broadcast_message(struct json_object *body, char *name){
 		j =0;
 		for(j ; j<40; j++){
 			if(clients[j]!=NULL){
-				if(clients[j]->name == name){ //verificar que sea el id del cliente a  eliminar
+				if(clients[j]->name == name){ //verificar que sea el id del cliente que mando el broadcast
 				
 					char description[200];
 					sprintf(description, "{'response': 'POST_CHAT','code':200}");
 					write(clients[j]->sockfd, description,strlen(description));
-				}else{
+				}else{//A los demas usuarios
 					char description[200];
 					sprintf(description, "{'response': 'NEW_MESSAGE','body': %s }",json_object_get_string(body));
 					write(clients[j]->sockfd, description,strlen(description));
@@ -129,7 +128,7 @@ void message_user(struct json_object *body, char *name){
 		message *msg = (message*)malloc(sizeof(message));
 		sprintf(msg->message, "%s", json_object_get_string(json_object_array_get_idx(body, 0)));
 		sprintf(msg->from, "%s", json_object_get_string(json_object_array_get_idx(body, 1)));		
-		sprintf(msg->deliver_at, json_object_get_string(json_object_array_get_idx(body, 2))); //HARDCODED AL IGUAL QUE EN BROADCASTS		
+		sprintf(msg->deliver_at, json_object_get_string(json_object_array_get_idx(body, 2)));	
 		sprintf(msg->to, json_object_get_string(json_object_array_get_idx(body, 3)));
 		
 		int j =0;
@@ -162,11 +161,11 @@ void message_user(struct json_object *body, char *name){
 				if(clients[l]->name==name){
 					if(flag==0){
 							char description[200];
-							sprintf(description, "{'response': 'POST_CHAT','code':102}");
+							sprintf(description, "{'response': 'POST_CHAT','code':102}");//Enviar a usuario que mando el mensaje si falla
 							write(clients[l]->sockfd, description,strlen(description));
 					}else{
 						char description[200];
-						sprintf(description, "{'response': 'POST_CHAT','code':200}");
+						sprintf(description, "{'response': 'POST_CHAT','code':200}");//Mandar si no falla
 						write(clients[l]->sockfd, description,strlen(description));
 					
 					
@@ -197,11 +196,6 @@ void get_broadcast_message(char *client_name){
 									strcat(arrayf, description);
 									bzero(description, 200);
 							}
-							
-							
-								
-														
-						
 							
 						}
 						
@@ -267,8 +261,6 @@ void change_status(char *message, char *client_name){
 				sprintf(description, "{'response': 'PUT_STATUS','code':200}");
 				write(clients[l]->sockfd, description,strlen(description));
 				printf("Changed status to: %s\n", clients[l]->status);
-				
-				
 			}
 		   }
 			
@@ -387,13 +379,13 @@ void info_user(char *name, char *client_name){
 		pthread_mutex_unlock(&clients_mutex);
 	}
 
-int verify_name(char * name){
+int verify_name(char * name, char *ip){
 		pthread_mutex_lock(&clients_mutex);
 		int valid = 1;
 		int j =0 ;
 		for(j;j<40;j++){
 				if(clients[j]!=NULL){
-					if(strcmp(clients[j]->name,name)==0){
+					if((strcmp(clients[j]->name,name)==0) && (strcmp(clients[j]->ip_user,ip)==0)){ //TODO YA VALIDA IP Y NOMBRE ,CAMBIAR POR OR SI ES ALGUNA SOLO VER SI VAN JUNTOS O SOLO UNO DE LOS DOS
 						valid = 0;
 
 						break;
@@ -440,12 +432,14 @@ void *handle_client(void *arg){
         			}else{
         				if( strlen(json_object_get_string(data_body))<2 || strlen(json_object_get_string(data_body)) > 39){
 			
-					printf("NO name");
+					printf("NO valid name\n");
+					write(client->sockfd,"{'response': 'INIT_CONEX','code':105}",44);
 					active_user = 1 ;
+					break;
 					}
 					else{
 						strcpy(client->name, json_object_get_string(data_body));
-						int valid1 = verify_name(client->name);
+						int valid1 = verify_name(client->name, client->ip_user);
 						printf("%d",valid1);
 						if(valid1){
 							add_client(client);
@@ -519,11 +513,6 @@ void *handle_client(void *arg){
 		if(strcmp(json_object_get_string(request), "POST_CHAT")==0){
 			//int receive2 = recv(client->sockfd, msg_client, 2000,0);
 			bzero(buffer, 2000);
-			//printf("im here broadcast");
-			// sprintf(buffer, "(%s) %s:%s\n", client->status,client->name,msg_client);
-			//str_trim_lf(buffer, strlen(buffer));
-			// printf("%s\n", buffer);
-
 			    struct json_object *body;
 			    json_object_object_get_ex(parsed_json,"body",&body);
 			    
