@@ -144,10 +144,10 @@ void recv_msg(){
 										sprintf(state, "%s", "ACTIVO");
 									}
 								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 0)),"1")==0){
-										sprintf(state, "%s", "OCUPADO");
+										sprintf(state, "%s", "INACTIVO");
 									}
 								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 0)),"2")==0){
-										sprintf(state, "%s", "INACTIVO");
+										sprintf(state, "%s", "OCUPADO");
 									}
 								printf("Estado: %s, Nombre: %s\n", state,json_object_get_string(json_object_array_get_idx(user_info, 1)));
 							}
@@ -159,10 +159,10 @@ void recv_msg(){
 										sprintf(state, "%s", "ACTIVO");
 									}
 								if(strcmp(json_object_get_string(json_object_array_get_idx(body, 1)),"1")==0){
-										sprintf(state, "%s", "OCUPADO");
+										sprintf(state, "%s", "INACTIVO");
 									}
 								if(strcmp(json_object_get_string(json_object_array_get_idx(body, 1)),"2")==0){
-										sprintf(state, "%s", "INACTIVO");
+										sprintf(state, "%s", "OCUPADO");
 									}
 								printf("ip: %s, estado: %s\n",json_object_get_string(json_object_array_get_idx(body, 0)),state);
 						}	
@@ -323,7 +323,7 @@ void sendv_msg(){
 				
 				
 			}else if(strcmp(msg, "change-status")==0){
-				printf("Escoge entre > ACTIVO , OCUPADO , INACTIVO\n");
+				printf("Escoge entre > ACTIVO , INACTIVO, OCUPADO \n");
 				//printf("broadcast here\n");
 				bzero(buffer, 2040);
 				//bzero(msg, 2000);
@@ -339,10 +339,10 @@ void sendv_msg(){
 				if(strcmp(option, "ACTIVO")==0){
 					sprintf(choice, "0");//opcion
 					//choice = "0";
-				}else if (strcmp(option, "OCUPADO")==0){
+				}else if (strcmp(option, "INACTIVO")==0){
 					sprintf(choice, "1");//opcion
 					//choice = "1";
-				}else if (strcmp(option, "INACTIVO")==0){
+				}else if (strcmp(option, "OCUPADO")==0){
 					sprintf(choice, "2");//opcion
 					//choice ="2";
 				}
