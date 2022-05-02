@@ -200,7 +200,7 @@ void recv_msg(){
 void get_help(){
 		
 		char description[3000];
-		sprintf(description, "Para utilizar el chat debes escribir la opcion que deseas (ejemplo: broadcast)\n Luego de esto debes presionar enter y escribir de acuerdo a tu opcion \n Si eliges show solamente lo debes colocar. \n Si eliges broadcast debes luego escribir tu mensaje. \n Si eliges info_user debes luego escribir el nombre del usuario que deseas. \n Si eliges user_msg debes enviar el mensaje privado de la siguiente manera <usuario> <mensaje>\n Si eliges get-global se obtienen los chats globales. \n Si eliges get-private se obtienen los chats privados");
+		sprintf(description, "Para utilizar el chat debes escribir la opcion que deseas (ejemplo: broadcast)\n Luego de esto debes presionar enter y escribir de acuerdo a tu opcion \n Si eliges show solamente lo debes colocar. \n Si eliges broadcast debes luego escribir tu mensaje. \n Si eliges info_user debes luego escribir el nombre del usuario que deseas. \n Si eliges user_msg debes enviar el mensaje privado de la siguiente manera <usuario> <mensaje>\n Si eliges get-global se obtienen los chats globales. \n Si eliges get-private se obtienen los chats privados\n");
 		printf("%s",description);
 	}
 
@@ -215,14 +215,14 @@ void sendv_msg(){
 		
 		if(strcmp(msg, "exit")==0){
 				char req[12] = "END_CONEX";
-				sprintf(buffer, "{'request': '%s'}",req);//opcion
+				sprintf(buffer, "{\"request\": \"%s\"}",req);//opcion
 				send(sockfd, buffer, strlen(buffer),0);
 				
 			}else if(strcmp(msg, "show")==0){
 				
 				bzero(buffer, 2040);
 				char req[12] = "GET_USER";
-				sprintf(buffer, "{'request': '%s','body': 'all'}",req);//opcion
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"all\"}",req);//opcion
 			
 				send(sockfd, buffer, strlen(buffer),0);
 				
@@ -230,7 +230,7 @@ void sendv_msg(){
 				
 				bzero(buffer, 2040);
 				char req[12] = "GET_CHAT";
-				sprintf(buffer, "{'request': '%s','body': 'all'}",req);//opcion
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"all\"}",req);//opcion
 			
 				send(sockfd, buffer, strlen(buffer),0);
 				
@@ -238,7 +238,7 @@ void sendv_msg(){
 				
 				bzero(buffer, 2040);
 				char req[12] = "GET_CHAT";
-				sprintf(buffer, "{'request': '%s','body': '%s'}",req,name);//opcion
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,name);//opcion
 			
 				send(sockfd, buffer, strlen(buffer),0);
 				
@@ -262,7 +262,7 @@ void sendv_msg(){
 				timestruct = localtime(&deliver);
 				sprintf(delivered_at, "%d:%d", timestruct->tm_hour,timestruct->tm_min);
 				
-				sprintf(buffer, "{'request': '%s','body': ['%s','%s','%s','all']}",req,option,name,delivered_at);//opcion
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": [\"%s\",\"%s\",\"%s\",\"all\"]}",req,option,name,delivered_at);//opcion
 				
 				send(sockfd, buffer, strlen(buffer),0);
 				bzero(buffer, 2040);
@@ -276,7 +276,7 @@ void sendv_msg(){
 				
 				char req[12] = "GET_USER";
 				str_trim_lf(option, 2000);
-				sprintf(buffer, "{'request': '%s','body': '%s'}",req,option);//opcion
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,option);//opcion
 				send(sockfd, buffer, strlen(buffer),0);
 				bzero(buffer, 2040);
 
@@ -309,7 +309,7 @@ void sendv_msg(){
 				deliver = time(NULL);
 				timestruct = localtime(&deliver);
 				sprintf(delivered_at, "%d:%d", timestruct->tm_hour, timestruct->tm_min);
-				sprintf(buffer, "{'request': '%s','body': ['%s','%s','%s','%s']}",req,s2, name, delivered_at, s1);//opcion
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": [\"%s\",\"%s\",\"%s\",\"%s\"]}",req,s2, name, delivered_at, s1);//opcion
 				send(sockfd, buffer, strlen(buffer),0);
 				bzero(buffer, 2040);
 				
@@ -347,7 +347,7 @@ void sendv_msg(){
 					//choice ="2";
 				}
 				char req[12] = "PUT_STATUS";
-				sprintf(buffer, "{'request': '%s','body': '%s'}",req,choice);//opcion
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,choice);//opcion
 				
 				send(sockfd, buffer, strlen(buffer),0);
 				
@@ -409,14 +409,14 @@ char timear[50];
 time_t connect_time = time(0); 
 sprintf(timear, "%d", connect_time);
 char description[200];
-sprintf(description, " '%s', ",timear);
+sprintf(description, " \"%s\", ",timear);
 strcat(data,description);
 bzero(description, 200);
-sprintf(description, " '%s' ", name);
+sprintf(description, " \"%s\" ", name);
 strcat(data, description);
 //printf("%s", data);
 
-sprintf(buffer, "{'request': 'INIT_CONEX','body': [%s]}",data);//INIT_CONEX
+sprintf(buffer, "{\"request\": \"INIT_CONEX\",\"body\": [%s]}",data);//INIT_CONEX
 send(sockfd, buffer, sizeof(buffer), 0);
 bzero(buffer, 256);
 recv(sockfd, buffer, sizeof(buffer),0);

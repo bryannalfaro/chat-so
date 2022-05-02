@@ -116,13 +116,13 @@ void broadcast_message(struct json_object *body, char *name)
 			{ // verificar que sea el id del cliente que mando el broadcast
 
 				char description[200];
-				sprintf(description, "{'response': 'POST_CHAT','code':200}");
+				sprintf(description, "{\"response\": \"POST_CHAT\",\"code\":200}");
 				write(clients[j]->sockfd, description, strlen(description));
 			}
 			else
 			{ // A los demas usuarios
 				char description[200];
-				sprintf(description, "{'response': 'NEW_MESSAGE','body': %s }", json_object_get_string(body));
+				sprintf(description, "{\"response\": \"NEW_MESSAGE\",\"body\": %s }", json_object_get_string(body));
 				write(clients[j]->sockfd, description, strlen(description));
 			}
 		}
@@ -160,7 +160,7 @@ void message_user(struct json_object *body, char *name)
 			{
 				flag = 1;
 				char description[200];
-				sprintf(description, "{'response': 'NEW_MESSAGE','body': %s }", json_object_get_string(body));
+				sprintf(description, "{\"response\": \"NEW_MESSAGE\",\"body\": %s }", json_object_get_string(body));
 				if (flag)
 				{
 					write(clients[l]->sockfd, description, strlen(description));
@@ -179,13 +179,13 @@ void message_user(struct json_object *body, char *name)
 				if (flag == 0)
 				{
 					char description[200];
-					sprintf(description, "{'response': 'POST_CHAT','code':102}"); // Enviar a usuario que mando el mensaje si falla
+					sprintf(description, "{\"response\": \"POST_CHAT\",\"code\":102}"); // Enviar a usuario que mando el mensaje si falla
 					write(clients[l]->sockfd, description, strlen(description));
 				}
 				else
 				{
 					char description[200];
-					sprintf(description, "{'response': 'POST_CHAT','code':200}"); // Mandar si no falla
+					sprintf(description, "{\"response\": \"POST_CHAT\",\"code\":200}"); // Mandar si no falla
 					write(clients[l]->sockfd, description, strlen(description));
 				}
 			}
@@ -214,13 +214,13 @@ void get_broadcast_message(char *client_name)
 					{ // SE COMPRUEBA QUE NO SEA NULO
 						if (strcmp(messages[j]->to, "all") == 0)
 						{
-							sprintf(description, " ['%s','%s', '%s'], ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
+							sprintf(description, " [\"%s\",\"%s\", \"%s\"], ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
 							strcat(arrayf, description);
 							bzero(description, 200);
 						}
 					}
 				}
-				sprintf(description, "{'response': 'GET_CHAT','code':200,'body':[%s]}", arrayf);
+				sprintf(description, "{\"response\": \"GET_CHAT\",\"code\":200,\"body\":[%s]}", arrayf);
 				write(clients[l]->sockfd, description, strlen(description));
 			}
 		}
@@ -248,14 +248,14 @@ void get_message_user(char *client_name)
 					{
 						if (strcmp(messages[j]->to, client_name) == 0)
 						{
-							printf("si %s, %s\n", messages[j]->to, client_name);
-							sprintf(description, " ['%s','%s', '%s'], ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
+							//printf("si %s, %s\n", messages[j]->to, client_name);
+							sprintf(description, " [\"%s\",\"%s\", \"%s\"], ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
 							strcat(arrayf, description);
 							bzero(description, 200);
 						}
 					}
 				}
-				sprintf(description, "{'response': 'GET_CHAT','code':200,'body':[%s]}", arrayf);
+				sprintf(description, "{\"response\": \"GET_CHAT\",\"code\":200,\"body\":[%s]}", arrayf);
 				write(clients[l]->sockfd, description, strlen(description));
 			}
 		}
@@ -280,7 +280,7 @@ void change_status(char *message, char *client_name)
 				bzero(clients[l]->status, strlen(clients[l]->status));
 				sprintf(clients[l]->status, "%s", message);
 				char description[200];
-				sprintf(description, "{'response': 'PUT_STATUS','code':200}");
+				sprintf(description, "{\"response\": \"PUT_STATUS\",\"code\":200}");
 				write(clients[l]->sockfd, description, strlen(description));
 				printf("Changed status to: %s\n", clients[l]->status);
 			}
@@ -312,7 +312,7 @@ void show_connected(char *client_name)
 						if (clients[i]->name != client_name)
 						{
 							flag = 1;
-							sprintf(description, " ['%s','%s'], ", clients[i]->status, clients[i]->name);
+							sprintf(description, " [\"%s\",\"%s\"], ", clients[i]->status, clients[i]->name);
 							strcat(arrayf, description);
 							bzero(description, 200);
 						}
@@ -320,14 +320,14 @@ void show_connected(char *client_name)
 				}
 				if (flag)
 				{
-					sprintf(description, "{'response': 'GET_USER','code':200,'body':[%s]}", arrayf);
+					sprintf(description, "{\"response\": \"GET_USER\",\"code\":200,\"body\":[%s]}", arrayf);
 					write(clients[l]->sockfd, description, strlen(description));
 					break;
 				}
 				if (flag == 0)
 				{
 					char description[200];
-					sprintf(description, "{'response': 'GET_USER','code':103}");
+					sprintf(description, "{\"response\": \"GET_USER\",\"code\":103}");
 					write(clients[l]->sockfd, description, strlen(description));
 				}
 			}
@@ -350,7 +350,7 @@ void send_res(char *name)
 		{
 			if (clients[l]->name == name)
 			{
-				sprintf(description, "{'response': 'END_CONEX','code':200}");
+				sprintf(description, "{\"response\": \"END_CONEX\",\"code\":200}");
 				write(clients[l]->sockfd, description, strlen(description));
 				break;
 			}
@@ -384,7 +384,7 @@ void info_user(char *name, char *client_name)
 							bzero(description, 200);
 							strcat(arrayf, description);
 							bzero(description, 200);
-							sprintf(description, "{'response': 'GET_USER','code':200,'body': ['%s','%s']}", clients[k]->ip_user, clients[k]->status);
+							sprintf(description, "{\"response\": \"GET_USER\",\"code\":200,\"body\": [\"%s\",\"%s\"]}", clients[k]->ip_user, clients[k]->status);
 							if (flag)
 							{
 								write(clients[l]->sockfd, description, strlen(description));
@@ -396,7 +396,7 @@ void info_user(char *name, char *client_name)
 				if (flag == 0)
 				{
 					char description[200];
-					sprintf(description, "{'response': 'GET_USER','code':102}");
+					sprintf(description, "{\"response\": \"GET_USER\",\"code\":102}");
 					write(clients[l]->sockfd, description, strlen(description));
 					break;
 				}
@@ -465,7 +465,7 @@ void *handle_client(void *arg)
 				if (strlen(json_object_get_string(data_body)) < 2 || strlen(json_object_get_string(data_body)) > 39)
 				{
 					printf("NO valid name\n");
-					write(client->sockfd, "{'response': 'INIT_CONEX','code':105}", 44);
+					write(client->sockfd, "{\"response\": \"INIT_CONEX\",\"code\":105}", 44);
 					active_user = 1;
 					break;
 				}
@@ -479,12 +479,12 @@ void *handle_client(void *arg)
 						add_client(client);
 						sprintf(buffer, "(%s) %s se ha unido\n", client->status, client->name);
 						printf("%s", buffer);
-						write(client->sockfd, "{'response': 'INIT_CONEX','code':200}", 44);
+						write(client->sockfd, "{\"response\": \"INIT_CONEX\",\"code\":200}", 44);
 						validuser2 = 1;
 					}
 					else
 					{
-						write(client->sockfd, "{'response': 'INIT_CONEX','code':101}", 44);
+						write(client->sockfd, "{\"response\": \"INIT_CONEX\",\"code\":101}", 44);
 						validuser2 = 0;
 					}
 				}
@@ -724,7 +724,7 @@ int main(int argc, char **argv)
 	int option = 1;
 	char status[10];
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = inet_addr("10.0.2.15"); // change according to machine
+	serv_addr.sin_addr.s_addr = inet_addr("192.168.1.11"); // change according to machine
 	serv_addr.sin_port = htons(portno);
 
 	signal(SIGPIPE, SIG_IGN);
