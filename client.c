@@ -27,6 +27,8 @@ void show_menu(){
 	printf("exit\n");
 	printf("help\n");
 	printf("change-status\n");
+	printf("get-global\n");
+	printf("get-private\n");
 }
 
 void str_trim_lf(char* arr, int length){
@@ -55,18 +57,36 @@ void recv_msg(){
 		bzero(msg, 2000);
 		int receive= 0;
 		receive = recv(sockfd,msg,2000,0);
+		int flag_code=0;
 
 		if(receive > 0){
+			struct json_object *code = 200;
 			struct json_object *parsed_json;
-			struct json_object *response;
 			parsed_json = json_tokener_parse(msg);
+			char search[]="code";
+			char *ptr = strstr(msg, search); //TODO Verificar si asi o pasarle code a response de NEW MESSAGE
+			if(ptr !=NULL){
+				json_object_object_get_ex(parsed_json,"code",&code);
+				if(json_object_get_int(code)==200){flag_code=1;}
+			}
+			struct json_object *response;
 			json_object_object_get_ex(parsed_json,"response",&response);
-			//printf("%s",json_object_get_string(response));
+			if(strcmp(json_object_get_string(response),"NEW_MESSAGE")==0){flag_code=1;}
+			
+			if(flag_code){
+				
 			if(strcmp(json_object_get_string(response),"PUT_STATUS")==0){
 				struct json_object *code;
 				json_object_object_get_ex(parsed_json, "code", &code);
 				if(json_object_get_int(code) == 200){
 						printf("%s\n","Cambio de estado exitoso");
+					} 
+			}if(strcmp(json_object_get_string(response),"POST_CHAT")==0){
+				struct json_object *code;
+				json_object_object_get_ex(parsed_json, "code", &code);
+				if(json_object_get_int(code) == 200){
+						printf("%s\n","Mensaje enviado");
+						
 					} 
 			}if(strcmp(json_object_get_string(response),"END_CONEX")==0){
 				struct json_object *code;
@@ -75,6 +95,32 @@ void recv_msg(){
 						printf("%s\n","FIN");
 						flag=1;
 					} 
+			}if(strcmp(json_object_get_string(response),"GET_CHAT")==0){ //GET CHAT LISTA DE MENSAJES
+				struct json_object *body;
+				json_object_object_get_ex(parsed_json, "body", &body);
+				size_t n_users = json_object_array_length(body);
+				size_t i;
+				char state[30];
+				struct json_object *user_info;
+				if(n_users==0){
+					printf("SIN MENSAJES\n");
+				}
+				for(i=0; i< n_users; i++){
+					user_info = json_object_array_get_idx(body, i);
+					
+					printf("(%s): %s - %s\n", json_object_get_string(json_object_array_get_idx(user_info, 1)), json_object_get_string(json_object_array_get_idx(user_info, 0)), json_object_get_string(json_object_array_get_idx(user_info, 2)));
+				}
+				
+			}if(strcmp(json_object_get_string(response),"NEW_MESSAGE")==0){
+				struct json_object *body;
+				json_object_object_get_ex(parsed_json, "body", &body);
+				
+				if(strcmp(json_object_get_string(json_object_array_get_idx(body, 3)),"all")==0){
+					printf("Tienes un nuevo mensaje global de %s\n", json_object_get_string(json_object_array_get_idx(body, 1)));
+				}else{
+					printf("Tienes un nuevo mensaje privado de %s\n", json_object_get_string(json_object_array_get_idx(body, 1)));
+				}
+				
 			}if(strcmp(json_object_get_string(response),"GET_USER")==0){
 				struct json_object *code;
 				json_object_object_get_ex(parsed_json, "code", &code);
@@ -84,27 +130,59 @@ void recv_msg(){
 						json_object_object_get_ex(parsed_json, "body", &body);
 						
 						size_t num = json_object_array_length(body);
-						//TODO : Recorrer para printear mejor
+			
 						struct json_object *user = json_object_array_get_idx(body,0);
 						if(json_object_array_length(user)==2){
 							printf("ACTIVE USERS \n");
-							printf("%s\n",json_object_get_string(body));
+							size_t n_users = json_object_array_length(body);
+							size_t i;
+							char state[30];
+							struct json_object *user_info;
+							for(i=0; i< n_users; i++){
+								user_info = json_object_array_get_idx(body, i);
+								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 0)),"0")==0){
+										sprintf(state, "%s", "ACTIVO");
+									}
+								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 0)),"1")==0){
+										sprintf(state, "%s", "INACTIVO");
+									}
+								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 0)),"2")==0){
+										sprintf(state, "%s", "OCUPADO");
+									}
+								printf("Estado: %s, Nombre: %s\n", state,json_object_get_string(json_object_array_get_idx(user_info, 1)));
+							}
+							//printf("%s\n",json_object_get_string(body));
 						}else{
-								printf("INFO ABOUT USER\n");
-								printf("%s\n",json_object_get_string(body));
+								printf("INFO ABOUT USER\n");	
+								char state[30];
+								if(strcmp(json_object_get_string(json_object_array_get_idx(body, 1)),"0")==0){
+										sprintf(state, "%s", "ACTIVO");
+									}
+								if(strcmp(json_object_get_string(json_object_array_get_idx(body, 1)),"1")==0){
+										sprintf(state, "%s", "INACTIVO");
+									}
+								if(strcmp(json_object_get_string(json_object_array_get_idx(body, 1)),"2")==0){
+										sprintf(state, "%s", "OCUPADO");
+									}
+								printf("ip: %s, estado: %s\n",json_object_get_string(json_object_array_get_idx(body, 0)),state);
 						}	
-						
-						//if(num>40){
-								//se trata de IP de un usuario
-								//printf("Se obtuvo lo siguiente \n ip de usuario: %s\n",json_object_get_string(body));
-						//}else{		//Se trata de un array
-								//printf("Usuarios activos \n %s\n",json_object_get_string(body));
-						//}
 						
 					} 
 			}
 
 			str_overwrite();
+			}
+			else if(json_object_get_int(code)==101){
+				printf("Usuario ya registrado\n");
+				str_overwrite();
+			}else if(json_object_get_int(code)==102){
+				printf("Usuario no conectado\n");
+				str_overwrite();
+			}else if(json_object_get_int(code)==103){
+				printf("No hay usuarios conectados\n");
+				str_overwrite();
+			}
+			
 			
 		}else if(receive==0){
 				//str_overwrite();
@@ -112,6 +190,7 @@ void recv_msg(){
 				flag=1;
 				break;
 			}
+		
 			
 			bzero(msg, 2000);
 			//str_overwrite();
@@ -121,7 +200,7 @@ void recv_msg(){
 void get_help(){
 		
 		char description[3000];
-		sprintf(description, "Para utilizar el chat debes escribir la opcion que deseas (ejemplo: broadcast)\n Luego de esto debes presionar enter y escribir de acuerdo a tu opcion \n Si eliges show solamente lo debes colocar. \n Si eliges broadcast debes luego escribir tu mensaje. \n Si eliges info_user debes luego escribir el nombre del usuario que deseas. \n Si eliges user_msg debes enviar el mensaje privado de la siguiente manera <usuario> <mensaje>\n");
+		sprintf(description, "Para utilizar el chat debes escribir la opcion que deseas (ejemplo: broadcast)\n Luego de esto debes presionar enter y escribir de acuerdo a tu opcion \n Si eliges show solamente lo debes colocar. \n Si eliges broadcast debes luego escribir tu mensaje. \n Si eliges info_user debes luego escribir el nombre del usuario que deseas. \n Si eliges user_msg debes enviar el mensaje privado de la siguiente manera <usuario> <mensaje>\n Si eliges get-global se obtienen los chats globales. \n Si eliges get-private se obtienen los chats privados\n");
 		printf("%s",description);
 	}
 
@@ -136,18 +215,35 @@ void sendv_msg(){
 		
 		if(strcmp(msg, "exit")==0){
 				char req[12] = "END_CONEX";
-				sprintf(buffer, "{'request': '%s'}",req);//opcion
+				sprintf(buffer, "{\"request\": \"%s\"}",req);//opcion
 				send(sockfd, buffer, strlen(buffer),0);
 				
 			}else if(strcmp(msg, "show")==0){
 				
 				bzero(buffer, 2040);
 				char req[12] = "GET_USER";
-				sprintf(buffer, "{'request': '%s','body': 'all'}",req);//opcion
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"all\"}",req);//opcion
+			
+				send(sockfd, buffer, strlen(buffer),0);
+				
+			}else if(strcmp(msg, "get-global")==0){
+				
+				bzero(buffer, 2040);
+				char req[12] = "GET_CHAT";
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"all\"}",req);//opcion
+			
+				send(sockfd, buffer, strlen(buffer),0);
+				
+			}else if(strcmp(msg, "get-private")==0){
+				
+				bzero(buffer, 2040);
+				char req[12] = "GET_CHAT";
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,name);//opcion
 			
 				send(sockfd, buffer, strlen(buffer),0);
 				
 			}
+			
 			else if(strcmp(msg, "broadcast")==0){
 				bzero(buffer, 2040);
 				
@@ -157,12 +253,19 @@ void sendv_msg(){
 				//printf("here 3");
 				str_trim_lf(msg, 2000);
 				str_trim_lf(option, 2000);
-				sprintf(buffer, "%s",msg);//opcion
+				char req[12] = "POST_CHAT";
+
+				char delivered_at[8];
+				time_t deliver;
+				struct tm *timestruct;
+				deliver = time(NULL);
+				timestruct = localtime(&deliver);
+				sprintf(delivered_at, "%d:%d", timestruct->tm_hour,timestruct->tm_min);
+				
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": [\"%s\",\"%s\",\"%s\",\"all\"]}",req,option,name,delivered_at);//opcion
+				
 				send(sockfd, buffer, strlen(buffer),0);
 				bzero(buffer, 2040);
-				sprintf(buffer, "%s",option); //mensaje
-				//printf("buffer broadcast %s", buffer);
-				send(sockfd, buffer, strlen(buffer),0);
 				
 			}else if(strcmp(msg, "info_user")==0){
 				
@@ -173,7 +276,7 @@ void sendv_msg(){
 				
 				char req[12] = "GET_USER";
 				str_trim_lf(option, 2000);
-				sprintf(buffer, "{'request': '%s','body': '%s'}",req,option);//opcion
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,option);//opcion
 				send(sockfd, buffer, strlen(buffer),0);
 				bzero(buffer, 2040);
 
@@ -188,15 +291,29 @@ void sendv_msg(){
 				
 				//printf("here 3");
 				str_trim_lf(msg, 2000);
-				str_trim_lf(option, 2000);
+				str_trim_lf(option, 2000); //a quien mensaje
 				sprintf(buffer, "%s",msg);//opcion
+
+				char req[12] = "POST_CHAT";
+				str_trim_lf(option, 2000);
+				char *s1;
+				char *s2;
+				char *sp;
+
+				sp = strchr(option, ' ');
+				s1 = strndup(option, sp-option);
+				s2 =  sp+1;
+				char delivered_at[8];
+				time_t deliver;
+				struct tm *timestruct;
+				deliver = time(NULL);
+				timestruct = localtime(&deliver);
+				sprintf(delivered_at, "%d:%d", timestruct->tm_hour, timestruct->tm_min);
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": [\"%s\",\"%s\",\"%s\",\"%s\"]}",req,s2, name, delivered_at, s1);//opcion
 				send(sockfd, buffer, strlen(buffer),0);
-				
 				bzero(buffer, 2040);
 				
-				sprintf(buffer, "%s",option); //usuario elegido
 				
-				send(sockfd, buffer, strlen(buffer),0);
 				
 				
 			}else if(strcmp(msg, "help")==0){
@@ -206,7 +323,7 @@ void sendv_msg(){
 				
 				
 			}else if(strcmp(msg, "change-status")==0){
-				printf("Escoge entre > ACTIVO , OCUPADO , INACTIVO\n");
+				printf("Escoge entre > ACTIVO , INACTIVO, OCUPADO \n");
 				//printf("broadcast here\n");
 				bzero(buffer, 2040);
 				//bzero(msg, 2000);
@@ -218,16 +335,19 @@ void sendv_msg(){
 				//printf("here 3");
 				str_trim_lf(msg, 2000); // opcion 
 				str_trim_lf(option, 2000);//que cambio hacer
-				int choice;
+				char choice[1];
 				if(strcmp(option, "ACTIVO")==0){
-					choice = 0;
-				}else if (strcmp(option, "OCUPADO")==0){
-					choice = 1;
+					sprintf(choice, "0");//opcion
+					//choice = "0";
 				}else if (strcmp(option, "INACTIVO")==0){
-					choice =2;
+					sprintf(choice, "1");//opcion
+					//choice = "1";
+				}else if (strcmp(option, "OCUPADO")==0){
+					sprintf(choice, "2");//opcion
+					//choice ="2";
 				}
 				char req[12] = "PUT_STATUS";
-				sprintf(buffer, "{'request': '%s','body': '%d'}",req,choice);//opcion
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,choice);//opcion
 				
 				send(sockfd, buffer, strlen(buffer),0);
 				
@@ -244,7 +364,7 @@ void sendv_msg(){
 			bzero(msg, 2000);
 			bzero(option,2000);
 		}
-		catch_exit();
+		flag=1;
 }
 
 
@@ -269,10 +389,10 @@ int main(int argc, char *argv[]){
     }
 	strcpy(name,argv[3]);
 	str_trim_lf(name, strlen(name));
-	if(strlen(name)<2 || strlen(name) > 39){
+	/*if(strlen(name)<2 || strlen(name) > 39){
 		printf("name not correct");
 		exit(1);
-	}
+	}*/ //TODO SE IGNORO PARA VALIDAR DESDE EL SERVIDOR
     
 
     serv_addr.sin_family = AF_INET;
@@ -289,14 +409,14 @@ char timear[50];
 time_t connect_time = time(0); 
 sprintf(timear, "%d", connect_time);
 char description[200];
-sprintf(description, " '%s', ",timear);
+sprintf(description, " \"%s\", ",timear);
 strcat(data,description);
 bzero(description, 200);
-sprintf(description, " '%s' ", name);
+sprintf(description, " \"%s\" ", name);
 strcat(data, description);
 //printf("%s", data);
 
-sprintf(buffer, "{'request': 'INIT_CONEX','body': [%s]}",data);//INIT_CONEX
+sprintf(buffer, "{\"request\": \"INIT_CONEX\",\"body\": [%s]}",data);//INIT_CONEX
 send(sockfd, buffer, sizeof(buffer), 0);
 bzero(buffer, 256);
 recv(sockfd, buffer, sizeof(buffer),0);
@@ -312,6 +432,12 @@ if(strcmp(json_object_get_string(response),"INIT_CONEX")==0){
 			json_object_object_get_ex(parsed_json,"code",&code);
 			if(json_object_get_int(code)==200){
 				show_menu();
+			}else if (json_object_get_int(code)==101){
+				printf("Usuario ya registrado\n");
+				exit(1);
+			}else if (json_object_get_int(code)==105){
+				printf("Error al ingresar dato\n");
+				exit(1);
 			}
 	}
 
@@ -334,13 +460,7 @@ while(1){
 				break;
 			}
 	}
-    /*bzero(buffer, 256);
-    n = read(sockfd, buffer, 255);
-    if(n < 0){
-        perror("ERROR reading from socket");
-        exit(1);
-    }
-    printf("%s\n", buffer);*/
+
     close(sockfd);
     return 0;
 
