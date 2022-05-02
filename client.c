@@ -140,16 +140,16 @@ void recv_msg(){
 							struct json_object *user_info;
 							for(i=0; i< n_users; i++){
 								user_info = json_object_array_get_idx(body, i);
-								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 0)),"0")==0){
+								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 1)),"0")==0){
 										sprintf(state, "%s", "ACTIVO");
 									}
-								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 0)),"1")==0){
+								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 1)),"1")==0){
 										sprintf(state, "%s", "INACTIVO");
 									}
-								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 0)),"2")==0){
+								if(strcmp(json_object_get_string(json_object_array_get_idx(user_info, 1)),"2")==0){
 										sprintf(state, "%s", "OCUPADO");
 									}
-								printf("Estado: %s, Nombre: %s\n", state,json_object_get_string(json_object_array_get_idx(user_info, 1)));
+								printf("Estado: %s, Nombre: %s\n", state,json_object_get_string(json_object_array_get_idx(user_info, 0)));
 							}
 							//printf("%s\n",json_object_get_string(body));
 						}else{
