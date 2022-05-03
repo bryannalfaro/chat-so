@@ -244,7 +244,7 @@ void sendv_msg(){
 				str_overwrite();
 				//printf("Here 2");
 				fgets(option, 2000, stdin);
-				
+				str_trim_lf(option, 2000);
 				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,option);//opcion
 			
 				send(sockfd, buffer, strlen(buffer),0);
