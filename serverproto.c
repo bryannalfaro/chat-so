@@ -229,7 +229,7 @@ void get_broadcast_message(char *client_name)
 	pthread_mutex_unlock(&clients_mutex);
 }
 
-void get_message_user(char *client_name)
+void get_message_user(char *client_name, char *name_peticion)
 {
 	pthread_mutex_lock(&clients_mutex);
 	char description[200];
@@ -240,13 +240,13 @@ void get_message_user(char *client_name)
 	{
 		if (clients[l] != NULL)
 		{
-			if (strcmp(clients[l]->name, client_name) == 0)
+			if (strcmp(clients[l]->name, name_peticion) == 0)
 			{
 				for (j; j < 200; j++)
 				{
 					if (messages[j] != NULL)
 					{
-						if (strcmp(messages[j]->to, client->name) == 0 && strcmp(messages[j]->from, client_name) == 0)
+						if (strcmp(messages[j]->to, name_peticion) == 0 && strcmp(messages[j]->from, client_name) == 0)
 						{
 							//printf("si %s, %s\n", messages[j]->to, client_name);
 							sprintf(description, " [\"%s\",\"%s\", \"%s\"], ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
@@ -590,7 +590,7 @@ void *handle_client(void *arg)
 					else
 					{
 						sprintf(private_name, "%s", json_object_get_string(body));
-						get_message_user(private_name);
+						get_message_user(private_name, client->name);
 					}
 					bzero(buffer, 2000);
 				}
@@ -724,7 +724,7 @@ int main(int argc, char **argv)
 	int option = 1;
 	char status[10];
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = inet_addr("172.31.29.215"); // change according to machine
+	serv_addr.sin_addr.s_addr = inet_addr("192.168.1.11"); // change according to machine
 	serv_addr.sin_port = htons(portno);
 
 	signal(SIGPIPE, SIG_IGN);
