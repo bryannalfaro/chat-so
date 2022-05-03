@@ -312,7 +312,7 @@ void show_connected(char *client_name)
 						if (clients[i]->name != client_name)
 						{
 							flag = 1;
-							sprintf(description, " [\"%s\",\"%s\"], ", clients[i]->status, clients[i]->name);
+							sprintf(description, " [\"%s\",\"%s\"], ", clients[i]->name, clients[i]->status);
 							strcat(arrayf, description);
 							bzero(description, 200);
 						}
@@ -724,7 +724,7 @@ int main(int argc, char **argv)
 	int option = 1;
 	char status[10];
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = inet_addr("192.168.1.11"); // change according to machine
+	serv_addr.sin_addr.s_addr = inet_addr("172.31.29.215"); // change according to machine
 	serv_addr.sin_port = htons(portno);
 
 	signal(SIGPIPE, SIG_IGN);
