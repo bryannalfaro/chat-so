@@ -462,7 +462,7 @@ void *handle_client(void *arg)
 			}
 			else
 			{
-				if (strlen(json_object_get_string(data_body)) < 2 || strlen(json_object_get_string(data_body)) > 39)
+				if (strlen(json_object_get_string(data_body)) < 4 || strlen(json_object_get_string(data_body)) > 39)
 				{
 					printf("NO valid name\n");
 					write(client->sockfd, "{\"response\": \"INIT_CONEX\",\"code\":105}", 44);
