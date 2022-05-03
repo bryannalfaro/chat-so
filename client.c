@@ -238,14 +238,14 @@ void sendv_msg(){
 				
 				bzero(buffer, 2040);
 				char req[12] = "GET_CHAT";
-				char *s1;
-				char *s2;
-				char *sp;
-
-				sp = strchr(msg, ' ');
-				s1 = strndup(msg, sp-msg);
-				s2 =  sp+1;
-				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,s2);//opcion
+				
+			
+				
+				str_overwrite();
+				//printf("Here 2");
+				fgets(option, 2000, stdin);
+				
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,option);//opcion
 			
 				send(sockfd, buffer, strlen(buffer),0);
 				
