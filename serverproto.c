@@ -246,7 +246,7 @@ void get_message_user(char *client_name)
 				{
 					if (messages[j] != NULL)
 					{
-						if (strcmp(messages[j]->to, client_name) == 0)
+						if (strcmp(messages[j]->to, client->name) == 0 && strcmp(messages[j]->from, client_name) == 0)
 						{
 							//printf("si %s, %s\n", messages[j]->to, client_name);
 							sprintf(description, " [\"%s\",\"%s\", \"%s\"], ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);

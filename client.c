@@ -238,7 +238,14 @@ void sendv_msg(){
 				
 				bzero(buffer, 2040);
 				char req[12] = "GET_CHAT";
-				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,name);//opcion
+				char *s1;
+				char *s2;
+				char *sp;
+
+				sp = strchr(msg, ' ');
+				s1 = strndup(msg, sp-msg);
+				s2 =  sp+1;
+				sprintf(buffer, "{\"request\": \"%s\",\"body\": \"%s\"}",req,s2);//opcion
 			
 				send(sockfd, buffer, strlen(buffer),0);
 				
