@@ -36,7 +36,7 @@ client_t *clients[40];	// Lista de clientes
 message *messages[200]; // Lista de mensajes
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void str_trim_lf(char *arr, int length)
+void str_parser(char *arr, int length)
 {
 	int i = 0;
 	for (i; i < length; i++)
@@ -248,7 +248,7 @@ void get_message_user(char *client_name, char *name_peticion)
 					{
 						if (strcmp(messages[j]->to, name_peticion) == 0 && strcmp(messages[j]->from, client_name) == 0)
 						{
-							//printf("si %s, %s\n", messages[j]->to, client_name);
+							// printf("si %s, %s\n", messages[j]->to, client_name);
 							sprintf(description, " [\"%s\",\"%s\", \"%s\"], ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
 							strcat(arrayf, description);
 							bzero(description, 200);
@@ -426,7 +426,7 @@ int verify_name(char *name, char *ip)
 	return valid;
 }
 
-void *handle_client(void *arg)
+void *manage_client(void *arg)
 {
 	char buffer[2000];
 	char option[2000];
@@ -498,7 +498,8 @@ void *handle_client(void *arg)
 		int j = 0;
 		for (j; j < 40; j++)
 		{
-			if(clients[j] != NULL){
+			if (clients[j] != NULL)
+			{
 				if (clients[j] != client)
 				{
 					time_t actualTime;
@@ -513,8 +514,6 @@ void *handle_client(void *arg)
 				}
 			}
 		}
-		
-		
 
 		if (active_user)
 		{
@@ -542,14 +541,12 @@ void *handle_client(void *arg)
 					char status[10];
 					sprintf(status, "0");
 					sprintf(client->status, "%s", status);
-;
+					;
 					time_t actualTime;
 					actualTime = time(0);
 					char userTime[50];
 					sprintf(userTime, "%f", (float)actualTime);
 					strcpy(client->last_interaction, userTime);
-
-			
 
 					struct json_object *body;
 					json_object_object_get_ex(parsed_json, "body", &body);
@@ -634,7 +631,7 @@ void *handle_client(void *arg)
 					char userTime[50];
 					sprintf(userTime, "%f", (float)actualTime);
 					strcpy(client->last_interaction, userTime);
-					
+
 					bzero(msg_client, 2000);
 
 					struct json_object *body;
@@ -754,8 +751,7 @@ int main(int argc, char **argv)
 		sprintf(status, "0");
 		sprintf(client->status, "%s", status);
 
-
-		pthread_create(&tid, NULL, &handle_client, (void *)client); // Hilo del cliente
+		pthread_create(&tid, NULL, &manage_client, (void *)client); // Hilo del cliente
 	}
 	signal(SIGPIPE, SIG_IGN);
 	close(newsockfd);
