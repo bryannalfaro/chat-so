@@ -208,17 +208,28 @@ void get_broadcast_message(char *client_name)
 		{
 			if (clients[l]->name == client_name)
 			{
+				int count = 0;
 				for (j; j < 200; j++)
 				{
 					if (messages[j] != NULL)
 					{ // SE COMPRUEBA QUE NO SEA NULO
 						if (strcmp(messages[j]->to, "all") == 0)
 						{
-							sprintf(description, " [\"%s\",\"%s\", \"%s\"], ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
-							strcat(arrayf, description);
-							bzero(description, 200);
+							if (count == 0)
+							{
+								sprintf(description, " [\"%s\",\"%s\", \"%s\"] ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
+								strcat(arrayf, description);
+								bzero(description, 200);
+							}
+							if (count > 0)
+							{
+								sprintf(description, ", [\"%s\",\"%s\", \"%s\"] ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
+								strcat(arrayf, description);
+								bzero(description, 200);
+							}
 						}
 					}
+					count = count + 1;
 				}
 				sprintf(description, "{\"response\": \"GET_CHAT\",\"code\":200,\"body\":[%s]}", arrayf);
 				write(clients[l]->sockfd, description, strlen(description));
@@ -242,18 +253,28 @@ void get_message_user(char *client_name, char *name_peticion)
 		{
 			if (strcmp(clients[l]->name, name_peticion) == 0)
 			{
+				int count = 0;
 				for (j; j < 200; j++)
 				{
 					if (messages[j] != NULL)
 					{
 						if (strcmp(messages[j]->to, name_peticion) == 0 && strcmp(messages[j]->from, client_name) == 0)
 						{
-							// printf("si %s, %s\n", messages[j]->to, client_name);
-							sprintf(description, " [\"%s\",\"%s\", \"%s\"], ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
-							strcat(arrayf, description);
-							bzero(description, 200);
+							if (count == 0)
+							{
+								sprintf(description, " [\"%s\",\"%s\", \"%s\"] ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
+								strcat(arrayf, description);
+								bzero(description, 200);
+							}
+							if (count > 0)
+							{
+								sprintf(description, ", [\"%s\",\"%s\", \"%s\"] ", messages[j]->message, messages[j]->from, messages[j]->deliver_at);
+								strcat(arrayf, description);
+								bzero(description, 200);
+							}
 						}
 					}
+					count = count + 1;
 				}
 				sprintf(description, "{\"response\": \"GET_CHAT\",\"code\":200,\"body\":[%s]}", arrayf);
 				write(clients[l]->sockfd, description, strlen(description));
@@ -305,18 +326,29 @@ void show_connected(char *client_name)
 		{
 			if (clients[l]->name == client_name)
 			{
+				int count = 0;
 				for (i; i < 40; i++)
 				{
 					if (clients[i] != NULL)
 					{
 						if (clients[i]->name != client_name)
 						{
+							if (count == 0)
+							{
 							flag = 1;
-							sprintf(description, " [\"%s\",\"%s\"], ", clients[i]->name, clients[i]->status);
-							strcat(arrayf, description);
-							bzero(description, 200);
+								sprintf(description, " [\"%s\",\"%s\"] ", clients[i]->name, clients[i]->status);
+								strcat(arrayf, description);
+								bzero(description, 200);
+							}
+							if (count > 0)
+							{
+								sprintf(description, ", [\"%s\",\"%s\"] ", clients[i]->name, clients[i]->status);
+								strcat(arrayf, description);
+								bzero(description, 200);
+							}
 						}
 					}
+					count = count + 1;
 				}
 				if (flag)
 				{
@@ -721,7 +753,7 @@ int main(int argc, char **argv)
 	int option = 1;
 	char status[10];
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = inet_addr("192.168.1.11"); // change according to machine
+	serv_addr.sin_addr.s_addr = inet_addr("172.31.29.215"); // change according to machine
 	serv_addr.sin_port = htons(portno);
 
 	signal(SIGPIPE, SIG_IGN);
