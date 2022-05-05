@@ -233,9 +233,9 @@ void get_broadcast_message(char *client_name)
 								strcat(arrayf, description);
 								bzero(description, 200);
 							}
+							count = count + 1;
 						}
 					}
-					count = count + 1;
 				}
 				sprintf(description, "{\"response\": \"GET_CHAT\",\"code\":200,\"body\":[%s]}", arrayf);
 				write(clients[l]->sockfd, description, strlen(description));
@@ -279,9 +279,9 @@ void get_message_user(char *client_name, char *name_peticion)
 								strcat(arrayf, description);
 								bzero(description, 200);
 							}
+							count = count + 1;
 						}
 					}
-					count = count + 1;
 				}
 				sprintf(description, "{\"response\": \"GET_CHAT\",\"code\":200,\"body\":[%s]}", arrayf);
 				write(clients[l]->sockfd, description, strlen(description));
@@ -356,9 +356,9 @@ void show_connected(char *client_name)
 								strcat(arrayf, description);
 								bzero(description, 200);
 							}
+							count = count + 1;
 						}
 					}
-					count = count + 1;
 				}
 				if (flag)
 				{
