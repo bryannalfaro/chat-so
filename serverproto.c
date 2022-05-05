@@ -335,13 +335,14 @@ void show_connected(char *client_name)
 						{
 							if (count == 0)
 							{
-							flag = 1;
+								flag = 1;
 								sprintf(description, " [\"%s\",\"%s\"] ", clients[i]->name, clients[i]->status);
 								strcat(arrayf, description);
 								bzero(description, 200);
 							}
 							if (count > 0)
 							{
+								flag = 1;
 								sprintf(description, ", [\"%s\",\"%s\"] ", clients[i]->name, clients[i]->status);
 								strcat(arrayf, description);
 								bzero(description, 200);
