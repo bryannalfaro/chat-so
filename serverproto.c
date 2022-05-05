@@ -116,12 +116,14 @@ void broadcast_message(struct json_object *body, char *name)
 			{ // verificar que sea el id del cliente que mando el broadcast
 
 				char description[200];
+				bzero(description, 200);
 				sprintf(description, "{\"response\": \"POST_CHAT\",\"code\":200}");
 				write(clients[j]->sockfd, description, strlen(description));
 			}
 			else
 			{ // A los demas usuarios
 				char description[200];
+				bzero(description, 200);
 				sprintf(description, "{\"response\": \"NEW_MESSAGE\",\"body\": %s }", json_object_get_string(body));
 				write(clients[j]->sockfd, description, strlen(description));
 			}
@@ -160,6 +162,7 @@ void message_user(struct json_object *body, char *name)
 			{
 				flag = 1;
 				char description[200];
+				bzero(description, 200);
 				sprintf(description, "{\"response\": \"NEW_MESSAGE\",\"body\": %s }", json_object_get_string(body));
 				if (flag)
 				{
@@ -179,12 +182,14 @@ void message_user(struct json_object *body, char *name)
 				if (flag == 0)
 				{
 					char description[200];
+					bzero(description, 200);
 					sprintf(description, "{\"response\": \"POST_CHAT\",\"code\":102}"); // Enviar a usuario que mando el mensaje si falla
 					write(clients[l]->sockfd, description, strlen(description));
 				}
 				else
 				{
 					char description[200];
+					bzero(description, 200);
 					sprintf(description, "{\"response\": \"POST_CHAT\",\"code\":200}"); // Mandar si no falla
 					write(clients[l]->sockfd, description, strlen(description));
 				}
@@ -199,6 +204,7 @@ void get_broadcast_message(char *client_name)
 {
 	pthread_mutex_lock(&clients_mutex);
 	char description[200];
+	bzero(description, 200);
 	char arrayf[1000] = "";
 	int l = 0;
 	int j = 0;
@@ -244,6 +250,7 @@ void get_message_user(char *client_name, char *name_peticion)
 {
 	pthread_mutex_lock(&clients_mutex);
 	char description[200];
+	bzero(description, 200);
 	char arrayf[1000] = "";
 	int l = 0;
 	int j = 0;
@@ -301,6 +308,7 @@ void change_status(char *message, char *client_name)
 				bzero(clients[l]->status, strlen(clients[l]->status));
 				sprintf(clients[l]->status, "%s", message);
 				char description[200];
+				bzero(description, 200);
 				sprintf(description, "{\"response\": \"PUT_STATUS\",\"code\":200}");
 				write(clients[l]->sockfd, description, strlen(description));
 				printf("Changed status to: %s\n", clients[l]->status);
@@ -318,6 +326,7 @@ void show_connected(char *client_name)
 	int i = 0;
 	int flag = 0;
 	char description[200];
+	bzero(description, 200);
 	char arrayf[1000] = "";
 
 	for (l; l < 40; l++)
@@ -353,6 +362,8 @@ void show_connected(char *client_name)
 				}
 				if (flag)
 				{
+					char description[200];
+					bzero(description, 200);
 					sprintf(description, "{\"response\": \"GET_USER\",\"code\":200,\"body\":[%s]}", arrayf);
 					write(clients[l]->sockfd, description, strlen(description));
 					break;
@@ -360,6 +371,7 @@ void show_connected(char *client_name)
 				if (flag == 0)
 				{
 					char description[200];
+					bzero(description, 200);
 					sprintf(description, "{\"response\": \"GET_USER\",\"code\":103}");
 					write(clients[l]->sockfd, description, strlen(description));
 				}
@@ -376,6 +388,7 @@ void send_res(char *name)
 	int l = 0;
 	int i = 0;
 	char description[200];
+	bzero(description, 200);			
 	char arrayf[1000] = "";
 	for (l; l < 40; l++)
 	{
@@ -399,6 +412,7 @@ void info_user(char *name, char *client_name)
 	int k = 0;
 	int flag = 0;
 	char description[200];
+	bzero(description, 200);
 	char arrayf[1000] = "";
 
 	for (l; l < 40; l++)
@@ -429,6 +443,7 @@ void info_user(char *name, char *client_name)
 				if (flag == 0)
 				{
 					char description[200];
+					bzero(description, 200);
 					sprintf(description, "{\"response\": \"GET_USER\",\"code\":102}");
 					write(clients[l]->sockfd, description, strlen(description));
 					break;
